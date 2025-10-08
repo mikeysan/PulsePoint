@@ -5,7 +5,7 @@ Flask-Talisman==1.1.0
 
 # RSS feed parsing
 feedparser==6.0.11
-aiohttp==3.11.10
+aiohttp==3.12.14
 python-dateutil==2.9.0
 
 # Security and validation
