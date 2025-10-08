@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}PulsePoint - News Feed{% endblock %}
+
+{% block content %}
+<div class="news-container">
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <strong>Error:</strong> Unable to load news feeds. {{ error }}
+    </div>
+    {% endif %}
+
+    {% if articles %}
+    <div class="row g-4">
+        {% for article in articles %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <article class="news-card">
+                <div class="news-card-header">
+                    <span class="news-source">{{ article.source }}</span>
+                    {% if article.published %}
+                    <span class="news-date">{{ article.published }}</span>
+                    {% endif %}
+                </div>
+                <div class="news-card-body">
+                    <h2 class="news-title">
+                        <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">
+                            {{ article.title }}
+                        </a>
+                    </h2>
+                    {% if article.summary %}
+                    <p class="news-summary">{{ article.summary | safe }}</p>
+                    {% endif %}
+                </div>
+                <div class="news-card-footer">
+                    <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" class="read-more">
+                        Read more &rarr;
+                    </a>
+                </div>
+            </article>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading news feeds...</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh every 5 minutes
+    setTimeout(function() {
+        location.reload();
+    }, 300000);
+</script>
+{% endblock %}
