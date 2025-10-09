@@ -21,8 +21,8 @@ jobs:
 
       - name: 🧠 Verify SSH Connection
         run: |
-          ssh -o StrictHostKeyChecking=no masego@46.62.214.248 "echo '✅ Connected to production server'"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.DEV_SERVER }} "echo '✅ Connected to production server'"
 
       - name: 🚀 Run deploy script
         run: |
-          ssh -o StrictHostKeyChecking=no masego@46.62.214.248 "bash ~/apps/PulsePoint/deploy.sh"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.DEV_SERVER }} "bash ~/apps/PulsePoint/deploy.sh"
