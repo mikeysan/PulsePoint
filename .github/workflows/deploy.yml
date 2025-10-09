@@ -1,0 +1,28 @@
+name: 🚀 Deploy PulsePoint
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧩 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: 🧠 Verify SSH Connection
+        run: |
+          ssh -o StrictHostKeyChecking=no masego@46.62.214.248 "echo '✅ Connected to production server'"
+
+      - name: 🚀 Run deploy script
+        run: |
+          ssh -o StrictHostKeyChecking=no masego@46.62.214.248 "bash ~/apps/PulsePoint/deploy.sh"
