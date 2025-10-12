@@ -9,6 +9,7 @@ jobs:
   deploy:
     name: Deploy to Production Server
     runs-on: ubuntu-latest
+    environment: remote-connection
 
     steps:
       - name: 🧩 Checkout repository
