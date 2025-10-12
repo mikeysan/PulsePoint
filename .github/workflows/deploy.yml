@@ -25,4 +25,4 @@ jobs:
 
       - name: 🚀 Run deploy script
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.DEV_SERVER }} "bash ~/apps/PulsePoint/deploy.sh"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.DEV_SERVER }} "cd /opt/webapps/pulsepoint && ./deploy.sh"
