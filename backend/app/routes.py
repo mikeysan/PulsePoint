@@ -3,7 +3,8 @@ Routes for PulsePoint application.
 Defines API endpoints and view handlers using Flask Blueprints.
 """
 import asyncio
-from flask import Blueprint, render_template, jsonify, current_app
+import time
+from flask import Blueprint, render_template, jsonify, current_app, request
 
 from . import cache
 from .services.rss_reader import RSSReader
@@ -94,3 +95,98 @@ def health_check():
         JSON: Health status
     """
     return jsonify({'status': 'healthy', 'service': 'PulsePoint'})
+
+
+@main_bp.route('/api/performance')
+def performance_monitoring():
+    """
+    Performance monitoring endpoint for tracking application metrics.
+
+    Returns:
+        JSON: Performance metrics and system information
+    """
+    try:
+        import time
+        import psutil
+
+        # System metrics
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+
+        # Cache metrics
+        cache_stats = {
+            'type': current_app.config.get('CACHE_TYPE', 'unknown'),
+            'default_timeout': current_app.config.get('CACHE_DEFAULT_TIMEOUT', 300),
+        }
+
+        # RSS feed configuration
+        rss_config = {
+            'total_feeds': len(current_app.config['RSS_FEEDS']),
+            'timeout': current_app.config['REQUEST_TIMEOUT'],
+            'max_articles_per_feed': current_app.config['MAX_ARTICLES_PER_FEED'],
+        }
+
+        metrics = {
+            'timestamp': time.time(),
+            'system': {
+                'cpu_percent': cpu_percent,
+                'memory_percent': memory.percent,
+                'memory_available_gb': round(memory.available / (1024**3), 2),
+                'disk_percent': disk.percent,
+                'disk_free_gb': round(disk.free / (1024**3), 2),
+            },
+            'cache': cache_stats,
+            'rss_config': rss_config,
+            'performance_features': {
+                'compression_enabled': current_app.config.get('ENABLE_COMPRESSION', True),
+                'critical_css_enabled': True,
+                'resource_hints_enabled': True,
+                'async_css_loading': True,
+            }
+        }
+
+        return jsonify({
+            'success': True,
+            'metrics': metrics,
+            'service': 'PulsePoint Performance Monitor'
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Performance monitoring error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'service': 'PulsePoint Performance Monitor'
+        }), 500
+
+
+@main_bp.route('/api/performance/vitals', methods=['POST'])
+def record_core_web_vitals():
+    """
+    Endpoint to record Core Web Vitals metrics from client-side.
+
+    Returns:
+        JSON: Success status
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        # Log the Core Web Vitals metrics
+        current_app.logger.info(f"Core Web Vitals - LCP: {data.get('lcp')}, FID: {data.get('fid')}, CLS: {data.get('cls')}")
+
+        # Here you could store these metrics in a database or monitoring service
+        # For now, we'll just log them and return success
+
+        return jsonify({
+            'success': True,
+            'message': 'Core Web Vitals recorded successfully',
+            'recorded_at': time.time()
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error recording Core Web Vitals: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
