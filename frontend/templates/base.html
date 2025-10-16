@@ -6,11 +6,31 @@
     <meta name="description" content="PulsePoint - Your Streamlined News Pulse">
     <title>{% block title %}PulsePoint{% endblock %}</title>
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Performance: Resource Hints -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://feeds.bbci.co.uk" crossorigin>
+    <link rel="preconnect" href="https://www.theguardian.com" crossorigin>
+    <link rel="preconnect" href="https://feeds.skynews.com" crossorigin>
+    <link rel="preconnect" href="https://www.aljazeera.com" crossorigin>
+    <link rel="preconnect" href="https://techcrunch.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.wired.com">
+    <link rel="dns-prefetch" href="https://www.theverge.com">
+    <link rel="dns-prefetch" href="https://www.nasa.gov">
+    <link rel="dns-prefetch" href="https://rss.cnn.com">
+    <link rel="dns-prefetch" href="https://www.npr.org">
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Critical CSS (inlined for performance) -->
+    <style>
+        /* Critical CSS for above-the-fold content - inlined for performance */
+        :root{--color-bg:#fafbfc;--color-bg-gradient:linear-gradient(135deg,#fafbfc 0%,#f5f7fa 100%);--color-text:#1a202c;--color-text-muted:#718096;--color-card-bg:#ffffff;--color-border:#e2e8f0;--color-accent:#3b82f6;--color-accent-hover:#2563eb;--color-accent-soft:#dbeafe;--color-source-bg:#fef3c7;--color-source-text:#92400e;--font-primary:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;--shadow-sm:0 1px 3px rgba(0,0,0,.04);--transition:all .3s cubic-bezier(.4,0,.2,1)}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-primary);background:var(--color-bg-gradient);color:var(--color-text);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}.header{background-color:var(--color-card-bg);border-bottom:1px solid var(--color-border);padding:3rem 0 2.5rem;margin-bottom:3rem;box-shadow:var(--shadow-sm)}.header-title{font-size:2.5rem;font-weight:700;color:var(--color-text);margin-bottom:.5rem;letter-spacing:-1px}.header-subtitle{font-size:1rem;color:var(--color-text-muted);margin:0;font-weight:400}.main-content{flex:1;padding:1rem 0 3rem}.container{max-width:1200px;margin:0 auto}@media (max-width:768px){.header{padding:2rem 0 1.5rem;margin-bottom:2rem}.header-title{font-size:1.75rem}.header-subtitle{font-size:.9rem}}
+    </style>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+
+    <!-- Non-critical CSS (loaded asynchronously) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}"></noscript>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -37,8 +57,8 @@
         </div>
     </footer>
 
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 5 JS Bundle (deferred for performance) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
 
     {% block extra_js %}{% endblock %}
 </body>
