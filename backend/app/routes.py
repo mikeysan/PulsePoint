@@ -13,7 +13,7 @@ main_bp = Blueprint('main', __name__)
 
 
 @main_bp.route('/')
-@cache.cached(timeout=300)  # Cache for 5 minutes
+@cache.cached(timeout=300)  # Cache for 5 minutes (configurable via CACHE_PAGE_TIMEOUT)
 def index():
     """
     Render the main news feed page.
@@ -47,7 +47,7 @@ def index():
 
 
 @main_bp.route('/api/news')
-@cache.cached(timeout=300)  # Cache for 5 minutes
+@cache.cached(timeout=180)  # Cache for 3 minutes (configurable via CACHE_API_TIMEOUT)
 def get_news():
     """
     API endpoint to get news articles as JSON.
