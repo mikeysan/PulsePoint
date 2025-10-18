@@ -144,3 +144,34 @@ class TestValidateFeedData:
         }
         result = validate_feed_data(entry)
         assert result is None
+
+    def test_validate_feed_data_summary_xss_protection(self):
+        """Test that summary sanitizes dangerous HTML but allows safe tags."""
+        entry = {
+            'title': 'Test Article',
+            'link': 'https://example.com/article',
+            'summary': '<p>Safe paragraph</p><script>alert("xss")</script><iframe src="evil.com"></iframe>',
+            'source': 'Test Source',
+        }
+        result = validate_feed_data(entry)
+        assert result is not None
+        # Safe tags should be preserved
+        assert '<p>' in result['summary']
+        # Dangerous tags should be removed
+        assert '<script>' not in result['summary']
+        assert '<iframe>' not in result['summary']
+        assert 'alert' not in result['summary']
+
+    def test_validate_feed_data_malicious_onclick_attribute(self):
+        """Test that dangerous attributes are stripped from links in summary."""
+        entry = {
+            'title': 'Test Article',
+            'link': 'https://example.com/article',
+            'summary': '<a href="https://safe.com" onclick="alert()">Click</a>',
+            'source': 'Test Source',
+        }
+        result = validate_feed_data(entry)
+        assert result is not None
+        # Link should be preserved but onclick removed
+        assert '<a href="https://safe.com"' in result['summary']
+        assert 'onclick' not in result['summary']
