@@ -79,6 +79,48 @@ body {
     flex-direction: column;
 }
 
+/* Skip to Content Link (Accessibility) */
+.skip-to-content {
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--color-accent);
+    color: #ffffff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0 0 8px 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    z-index: 9999;
+    box-shadow: var(--shadow-md);
+    transition: top 0.3s ease;
+}
+
+.skip-to-content:focus {
+    top: 0;
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+}
+
+/* Focus Styles - Improved visibility for keyboard navigation */
+a:focus,
+button:focus,
+input:focus,
+textarea:focus,
+select:focus,
+[tabindex]:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+/* Ensure focus outline is visible in dark mode */
+[data-theme="dark"] a:focus,
+[data-theme="dark"] button:focus,
+[data-theme="dark"] input:focus {
+    outline-color: var(--color-accent);
+}
+
 /* Header */
 .header {
     background-color: var(--color-card-bg);
@@ -317,7 +359,7 @@ body {
 .theme-toggle {
     position: fixed;
     bottom: 2rem;
-    right: 3rem;
+    right: 4rem;
     width: 3.5rem;
     height: 3.5rem;
     border-radius: 50%;
@@ -541,5 +583,71 @@ body {
 
     .no-results p {
         font-size: 0.9375rem;
+    }
+}
+
+/* Accessibility: Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    /* Disable all animations and transitions for users who prefer reduced motion */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Ensure cards appear immediately without fade-in */
+    .news-card.fade-in {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    /* Disable hover transformations */
+    .news-card:hover {
+        transform: none;
+    }
+
+    .theme-toggle:hover {
+        transform: none;
+    }
+
+    /* Keep functional transitions very short */
+    .skip-to-content {
+        transition: none;
+    }
+}
+
+/* Touch Target Sizes for Mobile Accessibility (minimum 44x44px) */
+@media (max-width: 768px) {
+    /* Ensure interactive elements meet minimum touch target size */
+    a,
+    button,
+    input[type="checkbox"],
+    input[type="radio"],
+    .theme-toggle,
+    .clear-search {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Exception for inline links within text */
+    p a,
+    .news-summary a {
+        min-height: auto;
+        min-width: auto;
+    }
+
+    /* Increase padding for better touch targets on buttons */
+    .theme-toggle {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+
+    .clear-search {
+        width: 2.75rem;
+        height: 2.75rem;
     }
 }
