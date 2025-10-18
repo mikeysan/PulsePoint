@@ -29,8 +29,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
 
     <!-- Non-critical CSS (loaded asynchronously) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}"></noscript>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></noscript>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -56,6 +56,75 @@
             <p>&copy; 2025 PulsePoint. Stay informed, without the noise.</p>
         </div>
     </footer>
+
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle theme">
+        <!-- Sun icon for light mode -->
+        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <!-- Moon icon for dark mode -->
+        <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+    </button>
+
+    <!-- Theme Toggle JavaScript -->
+    <script>
+        /**
+         * Theme management system
+         * - Respects user's system preference (prefers-color-scheme)
+         * - Allows manual override via toggle button
+         * - Persists preference to localStorage
+         */
+        (function() {
+            const htmlElement = document.documentElement;
+
+            // Get stored theme preference or detect system preference
+            function getPreferredTheme() {
+                const storedTheme = localStorage.getItem('theme');
+                if (storedTheme) {
+                    return storedTheme;
+                }
+                // Check system preference
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            // Apply theme to document
+            function setTheme(theme) {
+                htmlElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+            }
+
+            // Toggle between light and dark themes
+            function toggleTheme() {
+                const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                setTheme(newTheme);
+            }
+
+            // Initialize theme immediately (before DOM loads) to prevent flash
+            setTheme(getPreferredTheme());
+
+            // Wait for DOM to be ready before attaching event listeners
+            document.addEventListener('DOMContentLoaded', function() {
+                const themeToggle = document.getElementById('themeToggle');
+
+                if (themeToggle) {
+                    // Add click event listener to toggle button
+                    themeToggle.addEventListener('click', toggleTheme);
+                }
+
+                // Listen for system theme changes
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+                    // Only auto-switch if user hasn't manually set a preference
+                    if (!localStorage.getItem('theme')) {
+                        setTheme(e.matches ? 'dark' : 'light');
+                    }
+                });
+            });
+        })();
+    </script>
 
     <!-- Bootstrap 5 JS Bundle (deferred for performance) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
