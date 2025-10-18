@@ -11,9 +11,42 @@
     {% endif %}
 
     {% if articles %}
-    <div class="row g-4">
+    <!-- Search/Filter Section -->
+    <div class="search-container mb-4">
+        <div class="search-wrapper">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+                type="text"
+                id="searchInput"
+                class="search-input"
+                placeholder="Search articles by title or summary..."
+                aria-label="Search articles"
+            />
+            <button id="clearSearch" class="clear-search" aria-label="Clear search" title="Clear search" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="search-meta">
+            <span id="articleCount">Showing {{ articles|length }} articles</span>
+        </div>
+    </div>
+
+    <!-- No Results Message (hidden by default) -->
+    <div id="noResults" class="no-results" style="display: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3>No articles found</h3>
+        <p>Try a different search term or <button id="clearSearchBtn" class="clear-link">clear your search</button></p>
+    </div>
+
+    <div class="row g-4" id="articlesGrid">
         {% for article in articles %}
-        <div class="col-12 col-md-6 col-lg-4">
+        <div class="col-12 col-md-6 col-lg-4 article-item" data-title="{{ article.title|lower }}" data-summary="{{ article.summary|striptags|lower }}">
             <article class="news-card fade-in" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
                 <div class="news-card-header">
                     <span class="news-source">{{ article.source }}</span>
@@ -70,13 +103,108 @@
         }
     }
 
+    // Search/Filter functionality
+    function initializeSearch() {
+        const searchInput = document.getElementById('searchInput');
+        const clearButton = document.getElementById('clearSearch');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const articleCount = document.getElementById('articleCount');
+        const noResults = document.getElementById('noResults');
+        const articlesGrid = document.getElementById('articlesGrid');
+        const articleItems = document.querySelectorAll('.article-item');
+        const totalArticles = articleItems.length;
+
+        // Debounce function to limit search execution frequency
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Filter articles based on search query
+        function filterArticles(query) {
+            const searchTerm = query.toLowerCase().trim();
+            let visibleCount = 0;
+
+            articleItems.forEach(function(item) {
+                const title = item.getAttribute('data-title') || '';
+                const summary = item.getAttribute('data-summary') || '';
+
+                // Check if search term is in title or summary
+                const matches = title.includes(searchTerm) || summary.includes(searchTerm);
+
+                if (matches) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Update article count
+            if (searchTerm) {
+                articleCount.textContent = `Showing ${visibleCount} of ${totalArticles} articles`;
+            } else {
+                articleCount.textContent = `Showing ${totalArticles} articles`;
+            }
+
+            // Show/hide "no results" message
+            if (visibleCount === 0 && searchTerm) {
+                noResults.style.display = 'flex';
+                articlesGrid.style.display = 'none';
+            } else {
+                noResults.style.display = 'none';
+                articlesGrid.style.display = '';
+            }
+
+            // Show/hide clear button
+            if (searchTerm) {
+                clearButton.style.display = 'flex';
+            } else {
+                clearButton.style.display = 'none';
+            }
+        }
+
+        // Clear search
+        function clearSearch() {
+            searchInput.value = '';
+            filterArticles('');
+            searchInput.focus();
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', debounce(function(e) {
+            filterArticles(e.target.value);
+        }, 300));
+
+        clearButton.addEventListener('click', clearSearch);
+        clearSearchBtn.addEventListener('click', clearSearch);
+
+        // Allow Enter key to trigger search immediately (bypass debounce)
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterArticles(e.target.value);
+            }
+        });
+    }
+
     // Update all timestamps on page load
     document.addEventListener('DOMContentLoaded', function() {
+        // Format timestamps
         const timeElements = document.querySelectorAll('.news-date[data-timestamp]');
         timeElements.forEach(function(elem) {
             const timestamp = elem.getAttribute('data-timestamp');
             elem.textContent = formatRelativeTime(timestamp);
         });
+
+        // Initialize search functionality
+        initializeSearch();
     });
 
     // Auto-refresh every 5 minutes
