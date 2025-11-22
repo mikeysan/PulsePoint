@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,60 +20,160 @@
     <link rel="dns-prefetch" href="https://rss.cnn.com">
     <link rel="dns-prefetch" href="https://www.npr.org">
 
-    <!-- Critical CSS (inlined for performance) -->
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- Critical CSS for above-the-fold content - inlined for performance -->
     <style>
-        /* Critical CSS for above-the-fold content - inlined for performance */
-        :root{--color-bg:#fafbfc;--color-bg-gradient:linear-gradient(135deg,#fafbfc 0%,#f5f7fa 100%);--color-text:#1a202c;--color-text-muted:#718096;--color-card-bg:#ffffff;--color-border:#e2e8f0;--color-accent:#3b82f6;--color-accent-hover:#2563eb;--color-accent-soft:#dbeafe;--color-source-bg:#fef3c7;--color-source-text:#92400e;--font-primary:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;--shadow-sm:0 1px 3px rgba(0,0,0,.04);--transition:all .3s cubic-bezier(.4,0,.2,1)}*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-primary);background:var(--color-bg-gradient);color:var(--color-text);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}.header{background-color:var(--color-card-bg);border-bottom:1px solid var(--color-border);padding:3rem 0 2.5rem;margin-bottom:3rem;box-shadow:var(--shadow-sm)}.header-title{font-size:2.5rem;font-weight:700;color:var(--color-text);margin-bottom:.5rem;letter-spacing:-1px}.header-subtitle{font-size:1rem;color:var(--color-text-muted);margin:0;font-weight:400}.main-content{flex:1;padding:1rem 0 3rem}.container{max-width:1200px;margin:0 auto}@media (max-width:768px){.header{padding:2rem 0 1.5rem;margin-bottom:2rem}.header-title{font-size:1.75rem}.header-subtitle{font-size:.9rem}}
+        :root {
+            --color-bg: #fafbfc;
+            --color-bg-gradient: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+            --color-text: #1a202c;
+            --color-text-muted: #718096;
+            --color-card-bg: #ffffff;
+            --color-border: #e2e8f0;
+            --color-accent: #3b82f6;
+            --color-accent-hover: #2563eb;
+            --color-accent-soft: #dbeafe;
+            --color-source-bg: #fef3c7;
+            --color-source-text: #92400e;
+            --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, .04);
+            --transition: all .3s cubic-bezier(.4, 0, .2, 1)
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--color-bg-gradient);
+            color: var(--color-text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        .header {
+            background-color: var(--color-card-bg);
+            border-bottom: 1px solid var(--color-border);
+            padding: 3rem 0 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-sm)
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-bottom: .5rem;
+            letter-spacing: -1px
+        }
+
+        .header-subtitle {
+            font-size: 1rem;
+            color: var(--color-text-muted);
+            margin: 0;
+            font-weight: 400
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 1rem 0 3rem
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto
+        }
+
+        @media (max-width:768px) {
+            .header {
+                padding: 2rem 0 1.5rem;
+                margin-bottom: 2rem
+            }
+
+            .header-title {
+                font-size: 1.75rem
+            }
+
+            .header-subtitle {
+                font-size: .9rem
+            }
+        }
+
+        .fixed-action-buttons {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 1000
+        }
+
+        .action-btn {
+            background: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--color-text);
+            box-shadow: var(--shadow-sm)
+        }
+
+        .action-btn:hover {
+            background: var(--color-accent-soft);
+            color: var(--color-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, .1)
+        }
+
+        .action-btn svg {
+            width: 20px;
+            height: 20px
+        }
+
+        .sun-icon {
+            display: block
+        }
+
+        .moon-icon {
+            display: none
+        }
+
+        [data-theme="dark"] .sun-icon {
+            display: none
+        }
+
+        [data-theme="dark"] .moon-icon {
+            display: block
+        }
     </style>
 
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" media="print"
+        onload="this.media='all'">
 
     <!-- Non-critical CSS (loaded asynchronously) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></noscript>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}" media="print"
+        onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}">
+    </noscript>
 
     {% block extra_css %}{% endblock %}
-</head>
-<body>
-    <!-- Skip to Main Content Link (for keyboard navigation) -->
-    <a href="#main-content" class="skip-to-content">Skip to main content</a>
 
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <h1 class="header-title">PulsePoint</h1>
-            <p class="header-subtitle">Your Streamlined News Pulse</p>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="main-content" id="main-content" tabindex="-1">
-        <div class="container">
-            {% block content %}{% endblock %}
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container text-center">
-            <p>&copy; 2025 PulsePoint. Stay informed, without the noise.</p>
-        </div>
-    </footer>
-
-    <!-- Theme Toggle Button -->
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle theme">
-        <!-- Sun icon for light mode -->
-        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-        <!-- Moon icon for dark mode -->
-        <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-        </svg>
-    </button>
-
-    <!-- Theme Toggle JavaScript -->
+    <!-- Theme Toggle JavaScript (Moved to head to prevent FOUC) -->
     <script>
         /**
          * Theme management system
@@ -80,7 +181,7 @@
          * - Allows manual override via toggle button
          * - Persists preference to localStorage
          */
-        (function() {
+        (function () {
             const htmlElement = document.documentElement;
 
             // Get stored theme preference or detect system preference
@@ -110,7 +211,7 @@
             setTheme(getPreferredTheme());
 
             // Wait for DOM to be ready before attaching event listeners
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 const themeToggle = document.getElementById('themeToggle');
 
                 if (themeToggle) {
@@ -119,24 +220,97 @@
                 }
 
                 // Listen for system theme changes
-                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
                     // Only auto-switch if user hasn't manually set a preference
                     if (!localStorage.getItem('theme')) {
                         setTheme(e.matches ? 'dark' : 'light');
                     }
                 });
+
+                const refreshBtn = document.getElementById('refreshBtn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', function () {
+                        window.location.reload();
+                    });
+                }
             });
         })();
     </script>
+</head>
+
+<body>
+    <!-- Skip to Main Content Link (for keyboard navigation) -->
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1 class="header-title">PulsePoint</h1>
+            <p class="header-subtitle">Your Streamlined News Pulse</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content" tabindex="-1">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container text-center">
+            <p>&copy; 2025 PulsePoint. Stay informed, without the noise.</p>
+        </div>
+    </footer>
+
+    <!-- Theme Toggle Button -->
+    <div class="fixed-action-buttons">
+        <button class="action-btn" id="refreshBtn" aria-label="Refresh news" title="Refresh news">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        </button>
+        <button class="action-btn" id="themeToggle" aria-label="Toggle dark mode" title="Toggle theme">
+            <!-- Sun icon for light mode -->
+            <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <!-- Moon icon for dark mode -->
+            <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+        </button>
+    </div>
+
+
 
     <!-- Bootstrap 5 JS Bundle (deferred for performance) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
 
     <!-- Performance Monitoring (non-critical, loads last) -->
     <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
         // Performance monitoring script - loads after page content
-        window.addEventListener('load', function() {
-            setTimeout(function() {
+        window.addEventListener('load', function () {
+            setTimeout(function () {
                 try {
                     // Track basic performance metrics
                     const navigation = performance.getEntriesByType('navigation')[0];
@@ -183,13 +357,13 @@
                                 metrics.lcp = lcpValue;
                                 sendMetrics(metrics);
                             }, 2000);
-                        } catch(e) {
+                        } catch (e) {
                             sendMetrics(metrics);
                         }
                     } else {
                         sendMetrics(metrics);
                     }
-                } catch(e) {
+                } catch (e) {
                     console.log('Performance monitoring error:', e);
                 }
             }, 1000);
@@ -197,16 +371,18 @@
 
         function sendMetrics(metrics) {
             // Send metrics to server (non-blocking)
-            if (navigator.sendBeacon) {
-                const data = JSON.stringify(metrics);
-                navigator.sendBeacon('/api/performance/vitals', data);
-            } else {
-                fetch('/api/performance/vitals', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(metrics)
-                }).catch(() => {}); // Silently fail
-            }
+            // Use fetch with keepalive as a modern replacement for sendBeacon
+            // This ensures correct Content-Type headers are sent
+            fetch('/api/performance/vitals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(metrics),
+                keepalive: true
+            }).catch(err => {
+                console.log('Error sending metrics:', err);
+            });
 
             // Log to console for debugging
             console.log('PulsePoint Performance Metrics:', metrics);
@@ -215,4 +391,5 @@
 
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>
