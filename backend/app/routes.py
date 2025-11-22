@@ -4,7 +4,7 @@ Defines API endpoints and view handlers using Flask Blueprints.
 """
 import asyncio
 import time
-from flask import Blueprint, render_template, jsonify, current_app, request
+from flask import Blueprint, render_template, jsonify, current_app, request, make_response
 
 from . import cache
 from .services.rss_reader import RSSReader
@@ -190,3 +190,18 @@ def record_core_web_vitals():
     except Exception as e:
         current_app.logger.error(f"Error recording Core Web Vitals: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/manifest.json')
+def manifest():
+    """Serve PWA manifest."""
+    return current_app.send_static_file('manifest.json')
+
+
+@main_bp.route('/sw.js')
+def service_worker():
+    """Serve PWA service worker."""
+    response = make_response(current_app.send_static_file('sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
