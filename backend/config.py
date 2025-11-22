@@ -76,6 +76,14 @@ class Config:
             'name': 'NPR',
             'url': 'https://www.npr.org/rss/rss.php?id=1001',
         },
+        {
+            'name': 'Punch Nigeria',
+            'url': 'https://rss.punchng.com/v1/category/latest_news',
+        },
+        {
+            'name': 'Vanguard News',
+            'url': 'https://www.vanguardngr.com/feed/',
+        },
     ]
 
     # Request settings - optimized for performance
