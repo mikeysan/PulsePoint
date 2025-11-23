@@ -61,16 +61,16 @@ class Config:
             'url': 'https://www.wired.com/feed/rss',
         },
         {
-            'name': 'The Verge',
-            'url': 'https://www.theverge.com/rss/index.xml',
+            'name': 'Business Day Nigeria',
+            'url': 'https://businessday.ng/feed/',
         },
         {
-            'name': 'NASA',
-            'url': 'https://www.nasa.gov/rss/dyn/breaking_news.rss',
+            'name': 'Sahara Reporters',
+            'url': 'http://saharareporters.com/feeds/latest/feed',
         },
         {
-            'name': 'CNN',
-            'url': 'http://rss.cnn.com/rss/edition.rss',
+            'name': 'Premium Times',
+            'url': 'https://www.premiumtimesng.com/feed',
         },
         {
             'name': 'NPR',
