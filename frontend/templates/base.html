@@ -20,6 +20,7 @@
     <link rel="dns-prefetch" href="https://rss.cnn.com">
     <link rel="dns-prefetch" href="https://www.npr.org">
 
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#ffffff">
@@ -67,11 +68,25 @@
             box-shadow: var(--shadow-sm)
         }
 
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: .5rem;
+        }
+
+        .header-logo {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+        }
+
         .header-title {
             font-size: 2.5rem;
             font-weight: 700;
             color: var(--color-text);
-            margin-bottom: .5rem;
+            margin-bottom: 0;
             letter-spacing: -1px
         }
 
@@ -79,7 +94,8 @@
             font-size: 1rem;
             color: var(--color-text-muted);
             margin: 0;
-            font-weight: 400
+            font-weight: 400;
+            text-align: center;
         }
 
         .main-content {
@@ -104,6 +120,11 @@
 
             .header-subtitle {
                 font-size: .9rem
+            }
+            
+            .header-logo {
+                width: 40px;
+                height: 40px;
             }
         }
 
@@ -245,7 +266,10 @@
     <!-- Header -->
     <header class="header">
         <div class="container">
-            <h1 class="header-title">PulsePoint</h1>
+            <div class="header-content">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="PulsePoint Logo" class="header-logo">
+                <h1 class="header-title">PulsePoint</h1>
+            </div>
             <p class="header-subtitle">Your Streamlined News Pulse</p>
         </div>
     </header>
