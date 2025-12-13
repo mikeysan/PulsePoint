@@ -156,3 +156,56 @@ body {
     width: 1rem;
     height: 1rem
 }
+
+/* Buttons and toggles */
+.fixed-action-buttons {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 1000
+}
+
+.action-btn {
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--color-text);
+    box-shadow: var(--shadow-sm)
+}
+
+.action-btn:hover {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .1)
+}
+
+.action-btn svg {
+    width: 20px;
+    height: 20px
+}
+
+.sun-icon {
+    display: block
+}
+
+.moon-icon {
+    display: none
+}
+
+[data-theme="dark"] .sun-icon {
+    display: none
+}
+
+[data-theme="dark"] .moon-icon {
+    display: block
+}
