@@ -14,18 +14,17 @@
     <!-- Search/Filter Section -->
     <div class="search-container mb-4">
         <div class="search-wrapper">
-            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true" width="20" height="20">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input
-                type="text"
-                id="searchInput"
-                class="search-input"
-                placeholder="Search articles by title or summary..."
-                aria-label="Search articles"
-            />
-            <button id="clearSearch" class="clear-search" aria-label="Clear search" title="Clear search" style="display: none;">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <input type="text" id="searchInput" class="search-input"
+                placeholder="Search articles by title or summary..." aria-label="Search articles" />
+            <button id="clearSearch" class="clear-search" aria-label="Clear search" title="Clear search"
+                style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    aria-hidden="true" width="20" height="20">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
@@ -37,8 +36,10 @@
 
     <!-- No Results Message (hidden by default) -->
     <div id="noResults" class="no-results" style="display: none;">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <h3>No articles found</h3>
         <p>Try a different search term or <button id="clearSearchBtn" class="clear-link">clear your search</button></p>
@@ -46,7 +47,8 @@
 
     <div class="row g-4" id="articlesGrid">
         {% for article in articles %}
-        <div class="col-12 col-md-6 col-lg-4 article-item" data-title="{{ article.title|lower }}" data-summary="{{ article.summary|striptags|lower }}">
+        <div class="col-12 col-md-6 col-lg-4 article-item" data-title="{{ article.title|lower }}"
+            data-summary="{{ article.summary|striptags|lower }}">
             <article class="news-card fade-in" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
                 <div class="news-card-header">
                     <span class="news-source">{{ article.source }}</span>
@@ -132,7 +134,7 @@
             const searchTerm = query.toLowerCase().trim();
             let visibleCount = 0;
 
-            articleItems.forEach(function(item) {
+            articleItems.forEach(function (item) {
                 const title = item.getAttribute('data-title') || '';
                 const summary = item.getAttribute('data-summary') || '';
 
@@ -179,7 +181,7 @@
         }
 
         // Event listeners
-        searchInput.addEventListener('input', debounce(function(e) {
+        searchInput.addEventListener('input', debounce(function (e) {
             filterArticles(e.target.value);
         }, 300));
 
@@ -187,7 +189,7 @@
         clearSearchBtn.addEventListener('click', clearSearch);
 
         // Allow Enter key to trigger search immediately (bypass debounce)
-        searchInput.addEventListener('keypress', function(e) {
+        searchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 filterArticles(e.target.value);
             }
@@ -195,10 +197,10 @@
     }
 
     // Update all timestamps on page load
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Format timestamps
         const timeElements = document.querySelectorAll('.news-date[data-timestamp]');
-        timeElements.forEach(function(elem) {
+        timeElements.forEach(function (elem) {
             const timestamp = elem.getAttribute('data-timestamp');
             elem.textContent = formatRelativeTime(timestamp);
         });
@@ -208,7 +210,7 @@
     });
 
     // Auto-refresh every 5 minutes
-    setTimeout(function() {
+    setTimeout(function () {
         location.reload();
     }, 300000);
 </script>
