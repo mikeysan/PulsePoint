@@ -98,13 +98,14 @@ def validate_feed_data(feed_entry):
         if not title or not link:
             return None
 
-        # Sanitize and truncate fields
+        # Truncate and then re-sanitize to ensure no unclosed tags/attributes
+        summary_html = sanitize_html(feed_entry.get('summary', ''), strip=False)
+        truncated_summary = truncate_text(summary_html, max_length=300)
+        
         sanitized_entry = {
             'title': sanitize_html(title, strip=True),
             'link': sanitize_url(link),
-            'summary': truncate_text(
-                sanitize_html(feed_entry.get('summary', ''), strip=False), max_length=300
-            ),
+            'summary': sanitize_html(truncated_summary, strip=False),
             'published': feed_entry.get('published', ''),
             'source': sanitize_html(feed_entry.get('source', 'Unknown'), strip=True),
         }
