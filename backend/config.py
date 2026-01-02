@@ -41,8 +41,16 @@ class Config:
             'url': 'https://feeds.bbci.co.uk/news/rss.xml',
         },
         {
-            'name': 'The Guardian',
-            'url': 'https://www.theguardian.com/uk/rss',
+            'name': 'The Guardian Business',
+            'url': 'https://www.theguardian.com/uk/business/rss',
+        },
+        {
+            'name': 'The Guardian Uk News',
+            'url': 'https://www.theguardian.com/uk-news/rss',
+        },
+        {
+            'name': 'The Guardian World News',
+            'url': 'https://www.theguardian.com/world/rss',
         },
         {
             'name': 'Sky News',
@@ -53,12 +61,16 @@ class Config:
             'url': 'https://www.aljazeera.com/xml/rss/all.xml',
         },
         {
-            'name': 'TechCrunch',
-            'url': 'https://techcrunch.com/feed/',
+            'name': 'The Globe and Mail - World',
+            'url': 'https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/world/',
         },
         {
-            'name': 'Wired',
-            'url': 'https://www.wired.com/feed/rss',
+            'name': 'The Globe and Mail - Canada',
+            'url': 'https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/',
+        },
+        {
+            'name': 'Toronto Star',
+            'url': 'https://www.thestar.com/search/?f=rss&t=article&bl=2827101&l=20',
         },
         {
             'name': 'Business Day Nigeria',
@@ -83,6 +95,26 @@ class Config:
         {
             'name': 'Vanguard News',
             'url': 'https://www.vanguardngr.com/feed/',
+        },
+        {
+            'name': 'Sydney Morning Herald',
+            'url': 'https://www.smh.com.au/rss/feed.xml',
+        },
+        {
+            'name': 'Sydney Morning Herald World',
+            'url': 'https://www.smh.com.au/rss/world.xml',
+        },
+        {
+            'name': 'The Standard Headlines',
+            'url': 'https://www.standardmedia.co.ke/rss/headlines.php',
+        },
+        {
+            'name': 'The Standard World',
+            'url': 'https://www.standardmedia.co.ke/rss/world.php',
+        },
+        {
+            'name': 'The Standard Kenya',
+            'url': 'https://www.standardmedia.co.ke/rss/kenya.php',
         },
     ]
 
