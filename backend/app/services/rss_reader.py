@@ -50,7 +50,7 @@ class RSSReader:
                 async with session.get(
                     feed_url,
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
-                    headers={'User-Agent': 'PulsePoint/1.0'},
+                    headers={'User-Agent': 'PulsePoint/1.0', 'Accept-Encoding': 'gzip, deflate'},
                 ) as response:
                     if response.status != 200:
                         logger.error(

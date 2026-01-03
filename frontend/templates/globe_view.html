@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulsePoint - World View</title>
+    
+    <!-- PulsePoint Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/globe.css') }}">
+    
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+</head>
+<body>
+
+    <!-- Main Container -->
+    <div id="globe-container"></div>
+
+    <!-- Tooltip -->
+    <div id="globe-tooltip" class="globe-tooltip"></div>
+
+    <!-- Slide-over Drawer -->
+    <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
+    <div id="sideDrawer" class="side-drawer">
+        <header class="drawer-header">
+            <h2 id="drawerTitle" class="drawer-title">Country Name</h2>
+            <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+        </header>
+        <div id="drawerContent" class="drawer-content">
+            <!-- Stories injected here -->
+        </div>
+    </div>
+
+    <!-- Controls / Navigation -->
+    <div style="position: fixed; bottom: 20px; left: 20px; z-index: 10; font-family: 'Inter', sans-serif;">
+        <a href="{{ url_for('main.index') }}" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem;">
+            &larr; Back to Grid View
+        </a>
+    </div>
+
+    <!-- Logic -->
+    <script src="{{ url_for('static', filename='js/globe.js') }}"></script>
+</body>
+</html>

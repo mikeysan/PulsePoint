@@ -8,9 +8,18 @@ from flask import Blueprint, render_template, jsonify, current_app, request, mak
 
 from . import cache
 from .services.rss_reader import RSSReader
+from .services.aggregator import get_globe_data
 
 # Create blueprint
 main_bp = Blueprint('main', __name__)
+
+
+@main_bp.route('/globe')
+def globe_view():
+    """
+    Render the 3D Globe visualization.
+    """
+    return render_template('globe_view.html')
 
 
 @main_bp.route('/')
@@ -95,6 +104,26 @@ def health_check():
         JSON: Health status
     """
     return jsonify({'status': 'healthy', 'service': 'PulsePoint'})
+
+
+@main_bp.route('/api/globe-data')
+def get_globe_data_api():
+    """
+    API endpoint to get aggregated globe data.
+    """
+    try:
+        # Run async aggregator in sync context
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            data = loop.run_until_complete(get_globe_data())
+        finally:
+            loop.close()
+            
+        return jsonify(data)
+    except Exception as e:
+        current_app.logger.error(f"Globe API Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 @main_bp.route('/api/performance')
