@@ -22,6 +22,13 @@ logger = logging.getLogger(__name__)
 class RSSReader:
     """Asynchronous RSS feed reader."""
 
+    # Define a standard User-Agent to avoid being blocked by servers (Fixing 403 errors)
+    USER_AGENT = (
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/91.0.4472.124 Safari/537.36'
+    )
+
     def __init__(self, timeout=10, max_articles=10):
         """
         Initialize RSS reader.
@@ -47,10 +54,17 @@ class RSSReader:
         try:
             # Fetch feed content with timeout
             async with aiohttp.ClientSession() as session:
+                # UPDATED HEADERS: Changed User-Agent to mimic a browser
+                headers = {
+                    'User-Agent': self.USER_AGENT, 
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+                }
+                
                 async with session.get(
                     feed_url,
                     timeout=aiohttp.ClientTimeout(total=self.timeout),
-                    headers={'User-Agent': 'PulsePoint/1.0', 'Accept-Encoding': 'gzip, deflate'},
+                    headers=headers,
                 ) as response:
                     if response.status != 200:
                         logger.error(
@@ -202,3 +216,4 @@ class RSSReader:
         )
 
         return all_articles
+        
