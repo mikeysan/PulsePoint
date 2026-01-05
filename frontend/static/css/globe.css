@@ -4,8 +4,36 @@
     --drawer-width: 400px;
     --accent-pulse: #3b82f6;
     --text-primary: #f8fafc;
+    --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
 }
+
+/* --- Logo Overlay --- */
+#globe-logo-container {
+    position: fixed;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    pointer-events: none; /* Let clicks pass through */
+}
+
+#globe-logo-container img {
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+}
+
+#globe-logo-container h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    font-family: 'Inter', sans-serif;
+}
+
 
 body {
     background-color: var(--globe-bg);
