@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isRotating) {
                 const rotate = projection.rotate();
                 const k = sensibility / projection.scale();
-                projection.rotate([rotate[0] - 1 * k, rotate[1]]);
+                projection.rotate([rotate[0] - 0.3 * k, rotate[1]]);
                 redraw();
             }
         });
