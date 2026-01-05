@@ -59,9 +59,13 @@ async def get_globe_data() -> Dict[str, Any]:
         
         # Initialize country bucket if needed
         if country_iso not in globe_data:
+            country_details = _get_country_details(country_iso)
             globe_data[country_iso] = {
                 'id': country_iso,
-                'name': _get_country_name(country_iso), # Helper logic below
+                'name': country_details['name'],
+                'area_sq_km': country_details.get('area_sq_km'),
+                'population': country_details.get('population'),
+                'languages': country_details.get('languages', []),
                 'lat': config['lat'],
                 'lng': config['lng'],
                 'story_count': 0,
@@ -94,16 +98,125 @@ async def get_globe_data() -> Dict[str, Any]:
     
     return globe_data
 
-def _get_country_name(iso_code: str) -> str:
-    """Helper to map ISO codes to display names."""
-    # Could use pycountry library, but keeping deps minimal for now.
-    mapping = {
-        'NG': 'Nigeria',
-        'GB': 'United Kingdom',
-        'US': 'United States',
-        'QA': 'Qatar',
-        'CA': 'Canada',
-        'AU': 'Australia',
-        'KE': 'Kenya'
+def _get_country_details(iso_code: str) -> Dict[str, Any]:
+    """Helper to map ISO codes to country metadata."""
+    defaults = {
+        'name': iso_code,
+        'area_sq_km': None,
+        'population': None,
+        'languages': []
     }
-    return mapping.get(iso_code, iso_code)
+    
+    # Data source: roughly 2024 estimates
+    data = {
+        'NG': {
+            'name': 'Nigeria',
+            'area_sq_km': 923768,
+            'population': 223800000,
+            'languages': ['English']
+        },
+        'GB': {
+            'name': 'United Kingdom',
+            'area_sq_km': 242495,
+            'population': 67700000,
+            'languages': ['English']
+        },
+        'US': {
+            'name': 'United States',
+            'area_sq_km': 9833520,
+            'population': 334900000,
+            'languages': ['English']
+        },
+        'QA': {
+            'name': 'Qatar',
+            'area_sq_km': 11586,
+            'population': 2700000,
+            'languages': ['Arabic']
+        },
+        'CA': {
+            'name': 'Canada',
+            'area_sq_km': 9984670,
+            'population': 40000000,
+            'languages': ['English', 'French']
+        },
+        'AU': {
+            'name': 'Australia',
+            'area_sq_km': 7692024,
+            'population': 26500000,
+            'languages': ['English']
+        },
+        'KE': {
+            'name': 'Kenya',
+            'area_sq_km': 580367,
+            'population': 56000000,
+            'languages': ['Swahili', 'English']
+        },
+        'IN': {
+            'name': 'India',
+            'area_sq_km': 3287263,
+            'population': 1428000000,
+            'languages': ['Hindi', 'English']
+        },
+        'PK': {
+            'name': 'Pakistan',
+            'area_sq_km': 881913,
+            'population': 240000000,
+            'languages': ['Urdu', 'English']
+        },
+        'SG': {
+            'name': 'Singapore',
+            'area_sq_km': 728,
+            'population': 5900000,
+            'languages': ['English', 'Malay', 'Mandarin', 'Tamil']
+        },
+        'PH': {
+            'name': 'Philippines',
+            'area_sq_km': 300000,
+            'population': 117000000,
+            'languages': ['Filipino', 'English']
+        },
+        'BD': {
+            'name': 'Bangladesh',
+            'area_sq_km': 148460,
+            'population': 173000000,
+            'languages': ['Bengali']
+        },
+        'LK': {
+            'name': 'Sri Lanka',
+            'area_sq_km': 65610,
+            'population': 22000000,
+            'languages': ['Sinhala', 'Tamil']
+        },
+        'AE': {
+            'name': 'United Arab Emirates',
+            'area_sq_km': 83600,
+            'population': 9500000,
+            'languages': ['Arabic']
+        },
+        'KR': {
+            'name': 'South Korea',
+            'area_sq_km': 100210,
+            'population': 51700000,
+            'languages': ['Korean']
+        },
+        'IL': {
+            'name': 'Israel',
+            'area_sq_km': 22072,
+            'population': 9700000,
+            'languages': ['Hebrew']
+        },
+        'GH': {
+            'name': 'Ghana',
+            'area_sq_km': 238535,
+            'population': 34000000,
+            'languages': ['English']
+        },
+        'TH': {
+            'name': 'Thailand',
+            'area_sq_km': 513120,
+            'population': 71800000,
+            'languages': ['Thai']
+        }
+    }
+    
+    return data.get(iso_code, defaults)

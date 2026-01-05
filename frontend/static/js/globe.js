@@ -167,13 +167,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 4. UI Interactions (Tooltip & Drawer)
     function showTooltip(event, data) {
+        const pop = data.population ? data.population.toLocaleString() : 'N/A';
+        const area = data.area_sq_km ? data.area_sq_km.toLocaleString() + ' km²' : 'N/A';
+        const langs = data.languages && data.languages.length ? data.languages.join(', ') : 'N/A';
+
         tooltip
             .style('opacity', 1)
             .style('left', (event.pageX) + 'px')
             .style('top', (event.pageY - 10) + 'px')
             .html(`
                 <strong>${data.name}</strong><br/>
-                ${data.story_count} stories
+                <div style="margin-top:4px; font-size:0.8em; line-height:1.4; color:#ccc;">
+                    Population: ${pop}<br/>
+                    Area: ${area}<br/>
+                    Languages: ${langs}
+                </div>
+                <div style="margin-top:4px; border-top:1px solid #444; padding-top:4px;">
+                    ${data.story_count} stories
+                </div>
             `);
     }
 
