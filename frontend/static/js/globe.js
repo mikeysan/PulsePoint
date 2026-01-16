@@ -99,23 +99,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         const markerGroups = gBeacons.selectAll('g.marker-group')
             .data(beacons)
             .enter().append('g')
-            .attr('class', 'marker-group');
+            .attr('class', 'marker-group')
+            .on('mouseenter', () => {
+                isRotating = false;
+            })
+            .on('mouseleave', () => {
+                isRotating = true;
+            });
+
+        // Hit Zone (Invisible, for pausing)
+        markerGroups.append('circle')
+            .attr('class', 'hit-zone')
+            .attr('r', 30)
+            .attr('fill', 'transparent');
 
         // Pulse Ring
         markerGroups.append('circle')
             .attr('class', 'location-pulse')
-            .attr('r', 10); // Base radius, animated by CSS
+            .attr('r', 14); // slightly larger base radius for pulse
 
-        // Core Dot
+        // Core Dot (Visible, for interaction)
         markerGroups.append('circle')
             .attr('class', 'location-marker')
-            .attr('r', 6)
+            .attr('r', 10)
             .on('mouseover', (event, d) => {
-                isRotating = false;
                 showTooltip(event, d.properties);
             })
             .on('mouseout', () => {
-                isRotating = true;
                 hideTooltip();
             })
             .on('click', (event, d) => {
