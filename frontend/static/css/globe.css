@@ -25,13 +25,28 @@
     filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
 }
 
+#globe-logo-container .brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
 #globe-logo-container h1 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;
+    line-height: 1;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     font-family: 'Inter', sans-serif;
+}
+
+#globe-logo-container .subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0 0;
+    font-weight: 400;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    opacity: 0.9;
 }
 
 
