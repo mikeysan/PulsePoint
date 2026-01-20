@@ -165,6 +165,46 @@ class Config:
             'lng': -77.0369,
             'region_name': 'Washington, D.C.',
         },
+        {
+            'name': 'TechCrunch',
+            'url': 'https://techcrunch.com/feed/',
+            'country_iso': 'US',
+            'lat': 37.7749,
+            'lng': -122.4194,
+            'region_name': 'San Francisco',
+        },
+        {
+            'name': 'Wired',
+            'url': 'https://www.wired.com/feed/rss',
+            'country_iso': 'US',
+            'lat': 37.7749,
+            'lng': -122.4194,
+            'region_name': 'San Francisco',
+        },
+        {
+            'name': 'The Verge',
+            'url': 'https://www.theverge.com/rss/index.xml',
+            'country_iso': 'US',
+            'lat': 40.7128,
+            'lng': -74.0060,
+            'region_name': 'New York',
+        },
+        {
+            'name': 'NASA Breaking News',
+            'url': 'http://www.nasa.gov/rss/breaking_news.rss',
+            'country_iso': 'US',
+            'lat': 38.8833,
+            'lng': -77.0167,
+            'region_name': 'Washington, D.C.',
+        },
+        {
+            'name': 'CNN Top Stories',
+            'url': 'http://rss.cnn.com/rss/cnn_topstories.rss',
+            'country_iso': 'US',
+            'lat': 33.7490,
+            'lng': -84.3880,
+            'region_name': 'Atlanta',
+        },
 
         # Australia
         {

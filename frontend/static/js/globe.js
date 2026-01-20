@@ -42,8 +42,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         .attr('class', 'water')
         .attr('d', path)
         .attr('fill', '#0f172a')
-        .attr('stroke', '#334155')
+        .attr('stroke', 'rgba(59, 130, 246, 0.3)') // Subtle blue ring
         .attr('stroke-width', 1);
+
+    // Solar Terminator (Shadow)
+    // We'll create a simple gradient effect or a "night" overlay
+    const defs = svg.append('defs');
+    const radialGradient = defs.append('radialGradient')
+        .attr('id', 'globeGradient')
+        .attr('cx', '50%')
+        .attr('cy', '50%')
+        .attr('r', '50%');
+
+    radialGradient.append('stop')
+        .attr('offset', '80%')
+        .attr('stop-color', '#fff')
+        .attr('stop-opacity', '0');
+
+    radialGradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', '#000') // Shadow edge
+        .attr('stop-opacity', '0.6');
+
+    gGlobe.append('circle')
+        .attr('cx', width / 2)
+        .attr('cy', height / 2)
+        .attr('r', projection.scale())
+        .attr('fill', 'url(#globeGradient)')
+        .attr('class', 'terminator')
+        .style('pointer-events', 'none');
 
     // 2. Load Data (World GeoJSON + API Data)
     try {
@@ -63,21 +90,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             .attr('d', path)
             .attr('fill', '#334155')
             .attr('stroke', '#1e293b')
-            .attr('stroke-width', 0.5)
-            .attr('class', 'country');
+            .attr('stroke-width', 0.5) // Refined stroke
+            .attr('class', 'country')
+            .style('transition', 'fill 0.2s')
+            .on('mouseover', function () {
+                d3.select(this).attr('fill', '#475569');
+            })
+            .on('mouseout', function () {
+                d3.select(this).attr('fill', '#334155');
+            });
 
         // Render Beacons from backend data
         renderBeacons();
 
-        // Start Rotation
-        d3.timer((elapsed) => {
-            if (isRotating) {
-                const rotate = projection.rotate();
-                const k = sensibility / projection.scale();
-                projection.rotate([rotate[0] - 0.3 * k, rotate[1]]);
-                redraw();
-            }
-        });
+        // Initial Draw
+        redraw();
+
+        // (Rotation handled by new Inertia Timer below)
 
     } catch (error) {
         console.error('Failed to load globe data:', error);
@@ -95,42 +124,61 @@ document.addEventListener('DOMContentLoaded', async () => {
             properties: d
         }));
 
-        // Beacon Circles
+        // Beacon Groups
         const markerGroups = gBeacons.selectAll('g.marker-group')
             .data(beacons)
             .enter().append('g')
             .attr('class', 'marker-group')
-            .on('mouseenter', () => {
-                isRotating = false;
-            })
-            .on('mouseleave', () => {
-                isRotating = true;
-            });
+            .on('mouseenter', () => { isRotating = false; })
+            .on('mouseleave', () => { isRotating = true; });
 
-        // Hit Zone (Invisible, for pausing)
-        markerGroups.append('circle')
-            .attr('class', 'hit-zone')
-            .attr('r', 30)
-            .attr('fill', 'transparent');
+        // Volume Bar (projected line)
+        // Note: In 2D orthographic, lines are tricky. We simulate a "standing bar"
+        // by drawing a line from the point to a slightly "elevated" point.
+        // For simplicity and robustness in 2D SVG, we'll use vertically offset circles 
+        // AND a line connecting them to surface to look like a post.
 
-        // Pulse Ring
+        // 1. Base on surface (invisible hit target)
         markerGroups.append('circle')
-            .attr('class', 'location-pulse')
-            .attr('r', 14); // slightly larger base radius for pulse
+            .attr('r', 4)
+            .attr('fill', '#3b82f6')
+            .attr('fill-opacity', 0.5);
 
-        // Core Dot (Visible, for interaction)
+        // 2. The "Stick" (Line rising from surface)
+        markerGroups.append('line')
+            .attr('class', 'volume-stick')
+            .attr('x1', 0).attr('y1', 0)
+            .attr('x2', 0).attr('y2', d => -Math.min(d.properties.story_count * 2, 60)) // Height based on count
+            .attr('stroke', '#3b82f6')
+            .attr('stroke-width', 1)
+            .attr('opacity', 0.7);
+
+        // 3. The "Cap" (Data Point at top of stick)
         markerGroups.append('circle')
-            .attr('class', 'location-marker')
-            .attr('r', 10)
+            .attr('class', 'volume-cap')
+            .attr('cy', d => -Math.min(d.properties.story_count * 2, 60))
+            .attr('r', d => Math.min(Math.max(d.properties.story_count / 2, 3), 12)) // Size based on count
+            .attr('fill', '#3b82f6')
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 1)
+            .attr('cursor', 'pointer')
             .on('mouseover', (event, d) => {
                 showTooltip(event, d.properties);
+                d3.select(event.currentTarget).attr('fill', '#60a5fa');
             })
-            .on('mouseout', () => {
+            .on('mouseout', (event) => {
                 hideTooltip();
+                d3.select(event.currentTarget).attr('fill', '#3b82f6');
             })
             .on('click', (event, d) => {
                 openDrawer(d.properties);
             });
+
+        // Pulse Effect only for high volume/breaking
+        markerGroups.filter(d => d.properties.story_count > 5).append('circle')
+            .attr('class', 'location-pulse')
+            .attr('cy', d => -Math.min(d.properties.story_count * 2, 60))
+            .attr('r', 15);
 
         redraw();
     }
@@ -158,19 +206,76 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
     }
 
-    // Drag Interaction
+    // Inertia Rotation Logic
+    let velocity = [0.1, 0]; // Initial auto-rotation velocity [lon, lat]
+    let lastTime = d3.now();
+    let dragVelocity = [0, 0];
+
+    // Timer for continuous animation loop
+    d3.timer(() => {
+        const now = d3.now();
+        const dt = now - lastTime;
+        lastTime = now;
+
+        if (!isRotating) return; // Paused by hover
+
+        // Apply rotation based on current velocity
+        const rotate = projection.rotate();
+        projection.rotate([
+            rotate[0] + velocity[0] * (dt / 16),
+            rotate[1] + velocity[1] * (dt / 16)
+        ]);
+
+        // Friction/Decay if dragging stopped
+        // We revert gradually to "auto-spin" speed [0.1, 0]
+        // or just decay drag velocity to 0 and let auto-spin take over?
+        // Let's standard "decay to auto-spin" model.
+
+        // Auto-spin target
+        const targetVelocity = [0.1, 0];
+
+        // Linear interpolation towards target (friction)
+        velocity[0] = velocity[0] * 0.95 + targetVelocity[0] * 0.05;
+        velocity[1] = velocity[1] * 0.95 + targetVelocity[1] * 0.05;
+
+        // Clamp very small values to target to avoid micro-jitters
+        if (Math.abs(velocity[0] - targetVelocity[0]) < 0.001) velocity[0] = targetVelocity[0];
+        if (Math.abs(velocity[1] - targetVelocity[1]) < 0.001) velocity[1] = targetVelocity[1];
+
+        redraw();
+    });
+
+    // Drag Interaction with Inertia
     const drag = d3.drag()
-        .on('start', () => { isRotating = false; })
+        .on('start', () => {
+            isRotating = false;
+            dragVelocity = [0, 0];
+        })
         .on('drag', (event) => {
-            const rotate = projection.rotate();
             const k = sensibility / projection.scale();
+            const rotate = projection.rotate();
+
+            // Immediate update during drag
             projection.rotate([
                 rotate[0] + event.dx * k,
                 rotate[1] - event.dy * k
             ]);
+
+            // Capture velocity for inertia release
+            // Simple exponential smoothing
+            dragVelocity = [event.dx * k, -event.dy * k];
+
             redraw();
         })
-        .on('end', () => { isRotating = true; });
+        .on('end', () => {
+            // Apply drag throw velocity
+            // Boost it slightly for "feel"
+            velocity = [dragVelocity[0] * 1.5, dragVelocity[1] * 1.5];
+
+            // Resume loop
+            isRotating = true;
+            lastTime = d3.now();
+        });
 
     container.call(drag);
 
