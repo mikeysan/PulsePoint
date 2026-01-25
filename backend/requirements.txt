@@ -1,10 +1,10 @@
 aiohappyeyeballs==2.6.1
-aiohttp==3.13.0
+aiohttp==3.13.3
 aiosignal==1.4.0
 annotated-types==0.7.0
 anyio==4.11.0
 attrs==25.4.0
-Authlib==1.6.5
+Authlib==1.6.6
 black==24.10.0
 bleach==6.2.0
 blinker==1.9.0
@@ -17,7 +17,7 @@ coverage==7.10.7
 cryptography==46.0.2
 dparse==0.6.4
 feedparser==6.0.11
-filelock==3.20.0
+filelock==3.20.3
 flake8==7.1.1
 Flask==3.1.2
 Flask-Caching==2.3.1
@@ -78,7 +78,7 @@ tqdm==4.67.1
 typer==0.19.2
 typing-inspection==0.4.2
 typing_extensions==4.15.0
-urllib3==2.6.0
+urllib3==2.6.3
 webencodings==0.5.1
 Werkzeug==3.1.4
 yarl==1.22.0

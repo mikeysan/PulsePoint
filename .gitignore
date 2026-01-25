@@ -220,7 +220,7 @@ SERVER_SECURITY_SETUP.md
 .agent/
 .claude/
 .shared/
-
+.github/
 # Verify Venv
 backend/venv_verify/
 
