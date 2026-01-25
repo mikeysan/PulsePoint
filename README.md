@@ -19,18 +19,8 @@ PulsePoint is a modern, minimalist RSS news aggregator that consolidates live fe
 
 ## News Sources
 
-PulsePoint aggregates news from:
+PulsePoint aggregates news from multiple news sources from around the world.
 
-- BBC News
-- The Guardian
-- Sky News
-- Al Jazeera
-- TechCrunch
-- Wired
-- The Verge
-- NASA
-- CNN
-- NPR
 
 ## Tech Stack
 
