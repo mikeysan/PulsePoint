@@ -349,6 +349,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let velocity = [0.1, 0]; // Initial auto-rotation velocity [lon, lat]
     let lastTime = 0; // elapsed starts at 0 in d3.timer
     let dragVelocity = [0, 0];
+    let skipFrame = false; // Skip first frame after drag to sync time
 
     // Performance optimization: Throttle redraws with requestAnimationFrame
     let rafId = null;
@@ -369,7 +370,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Timer for continuous animation loop
     d3.timer((elapsed) => {
-        if (!isRotating) return true; // Paused by hover
+        if (!isRotating) {
+            // While paused, still update lastTime to keep it synced
+            lastTime = elapsed;
+            return true; // Paused by hover
+        }
+
+        // Skip first frame after resuming to let time delta normalize
+        if (skipFrame) {
+            lastTime = elapsed;
+            skipFrame = false;
+            return true;
+        }
 
         const dt = elapsed - lastTime;
         lastTime = elapsed;
@@ -427,9 +439,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Boost it slightly for "feel"
             velocity = [dragVelocity[0] * 1.5, dragVelocity[1] * 1.5];
 
-            // Resume loop
+            // Resume loop smoothly - skip first frame to normalize time delta
             isRotating = true;
-            lastTime = 0; // Reset to match elapsed time scale
+            skipFrame = true;
         });
 
     container.call(drag);
@@ -690,7 +702,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     isRotating = true;
                     // Reset velocity to auto-spin target
                     velocity = [0.1, 0];
-                    lastTime = 0; // Reset to match elapsed time scale
+                    skipFrame = true; // Skip first frame to normalize time delta
 
                     resolve();
                     return true; // Stop timer
