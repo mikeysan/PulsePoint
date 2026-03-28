@@ -674,6 +674,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const startRotate = projection.rotate();
         const startTime = d3.now();
 
+        // CRITICAL: Pause main rotation timer to prevent timer conflict
+        isRotating = false;
+        // Reset velocity to prevent corruption from residual drag velocity
+        velocity = [0, 0];
+
         return new Promise((resolve) => {
             d3.timer((elapsed) => {
                 const t = (elapsed - startTime) / duration;
@@ -681,6 +686,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (t >= 1) {
                     projection.rotate(targetRotate);
                     scheduleRedraw();
+
+                    // CRITICAL: Restore rotation state after animation completes
+                    isRotating = true;
+                    // Reset velocity to auto-spin target
+                    velocity = [0.1, 0];
+                    lastTime = d3.now();
+
                     resolve();
                     return true; // Stop timer
                 }
@@ -723,6 +735,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const closeBtn = drawer.querySelector('.drawer-close');
 
         title.textContent = `${data.name} News`;
+
+        // Validate data structure
+        if (!data || !data.stories || !Array.isArray(data.stories) || data.stories.length === 0) {
+            console.error('Invalid or missing stories data:', data);
+            showToast('No stories available for this country', 'error');
+            return;
+        }
 
         // Show skeleton loading state first
         content.innerHTML = Array(3).fill(0).map(() => `
