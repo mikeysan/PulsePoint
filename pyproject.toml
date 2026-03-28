@@ -88,6 +88,6 @@ dependencies = [
     "typing-inspection==0.4.2",
     "urllib3==2.6.3",
     "webencodings==0.5.1",
-    "werkzeug==3.1.4",
+    "werkzeug==3.1.6",
     "yarl==1.22.0",
 ]
