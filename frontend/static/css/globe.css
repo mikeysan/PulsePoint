@@ -4,7 +4,6 @@
     --drawer-width: 400px;
     --accent-pulse: #3b82f6;
     --text-primary: #f8fafc;
-    --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --focus-ring: #3b82f6;
 }
@@ -911,8 +910,8 @@ body {
 
 .keyboard-help-button {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 60px;
+    left: 20px;
     width: 44px;
     height: 44px;
     border-radius: 50%;

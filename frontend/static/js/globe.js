@@ -652,6 +652,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function createKeyboardHelpOverlay() {
         const helpHTML = `
             <div id="keyboard-help" class="keyboard-help-overlay active" aria-hidden="false" role="dialog" aria-labelledby="keyboard-help-title">
+                <div class="keyboard-help-content">
                 <div class="keyboard-help-header">
                     <h2 id="keyboard-help-title">⌨️ Keyboard Shortcuts</h2>
                     <button class="keyboard-help-close" aria-label="Close keyboard shortcuts help" onclick="closeKeyboardHelp()">×</button>
@@ -708,6 +709,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
             <div class="keyboard-help-backdrop" onclick="closeKeyboardHelp()"></div>
