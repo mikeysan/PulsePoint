@@ -1097,6 +1097,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Return focus to globe
         container.focus();
+
+        // Explicitly resume rotation
+        setTimeout(() => {
+            isRotating = true;
+        }, 100);
     };
 
     // Expose keyboard help function globally for HTML onclick handlers
