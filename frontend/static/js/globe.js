@@ -36,9 +36,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     let globeMetadata = {};
     let flyToTimer = null;
 
-    let isRotating = true;
+    // Respect OS-level motion preference (WCAG 2.3.3)
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let isRotating = !prefersReducedMotion;
     let lastTime = 0;
-    let velocity = [0.1, 0];
+    let velocity = prefersReducedMotion ? [0, 0] : [0.1, 0];
     let dragVelocity = [0, 0];
     let skipFrame = false;
 

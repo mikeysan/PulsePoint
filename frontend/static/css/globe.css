@@ -1102,3 +1102,42 @@ kbd {
         flex-wrap: wrap;
     }
 }
+
+/* ========================================
+   Reduced Motion Preferences (WCAG 2.3.3)
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .location-pulse {
+        animation: none;
+    }
+
+    .recency-badge.breaking {
+        animation: none;
+    }
+
+    .loading-spinner {
+        animation: none;
+    }
+
+    .drawer-card.skeleton .skeleton-title,
+    .drawer-card.skeleton .skeleton-meta,
+    .drawer-card.skeleton .skeleton-text {
+        animation: none;
+    }
+
+    .drawer-card.card-entrance {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    .keyboard-help-overlay,
+    .keyboard-help-button,
+    .drawer-close,
+    .location-marker,
+    .drawer-card,
+    .side-drawer {
+        transition: none;
+    }
+}
