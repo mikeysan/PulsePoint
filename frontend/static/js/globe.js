@@ -695,9 +695,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             announce('Keyboard shortcuts help closed');
             // Return focus to globe
             container.focus();
-            // Trigger mouseleave event to resume rotation if mouse is still on globe
-            const mouseleaveEvent = new MouseEvent('mouseleave', { bubbles: true, cancelable: true });
-            container.node().dispatchEvent(mouseleaveEvent);
+            // Explicitly resume rotation
+            isRotating = true;
+            skipFrame = true;
         }
     }
 
@@ -1097,9 +1097,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Return focus to globe
         container.focus();
 
-        // Trigger mouseleave event to resume rotation if mouse is still on globe
-        const mouseleaveEvent = new MouseEvent('mouseleave', { bubbles: true, cancelable: true });
-        container.node().dispatchEvent(mouseleaveEvent);
+        // Explicitly resume rotation
+        isRotating = true;
+        skipFrame = true;
     };
 
     // Expose keyboard help function globally for HTML onclick handlers
