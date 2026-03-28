@@ -29,6 +29,11 @@
         </div>
     </div>
 
+    <!-- Timestamp Display -->
+    <div id="globe-timestamp" class="globe-timestamp" title="Last data refresh time">
+        Loading...
+    </div>
+
     <!-- Main Container -->
     <div
         id="globe-container"
@@ -97,6 +102,23 @@
             &larr; Back to Grid View
         </a>
     </nav>
+
+    <!-- Volume Legend -->
+    <div id="volume-legend" class="volume-legend" role="legend" aria-label="Story volume legend">
+        <h4>News Volume</h4>
+        <div class="legend-item">
+            <span class="legend-color high"></span>
+            <span class="legend-label">High (15+)</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color medium"></span>
+            <span class="legend-label">Medium (8-14)</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color low"></span>
+            <span class="legend-label">Low (1-7)</span>
+        </div>
+    </div>
 
     <!-- Logic -->
     <script src="{{ url_for('static', filename='js/globe.js') }}"></script>

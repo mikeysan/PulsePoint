@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // State
     let globeData = {};
+    let globeMetadata = {};
     let isRotating = true;
     let rotationTimer;
 
@@ -133,7 +134,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error('No news data available');
             }
 
-            globeData = apiResponse;
+            // Extract metadata if present
+            if ('_meta' in apiResponse) {
+                globeMetadata = apiResponse._meta;
+                // Remove metadata from country data
+                globeData = Object.fromEntries(
+                    Object.entries(apiResponse).filter(([key]) => key !== '_meta')
+                );
+            } else {
+                globeData = apiResponse;
+                globeMetadata = {};
+            }
+
+            // Update timestamp display
+            updateTimestampDisplay();
+
             showToast('News loaded successfully', 'success');
 
             return { worldData, apiResponse };
@@ -221,13 +236,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Volume Bar (projected line)
         // Note: In 2D orthographic, lines are tricky. We simulate a "standing bar"
         // by drawing a line from the point to a slightly "elevated" point.
-        // For simplicity and robustness in 2D SVG, we'll use vertically offset circles 
+        // For simplicity and robustness in 2D SVG, we'll use vertically offset circles
         // AND a line connecting them to surface to look like a post.
+
+        // Determine color based on volume
+        const getColor = (count) => {
+            if (count >= 15) return '#ef4444'; // Red for high volume
+            if (count >= 8) return '#f59e0b';  // Amber for medium volume
+            return '#22c55e';                 // Green for low volume
+        };
 
         // 1. Base on surface (invisible hit target)
         markerGroups.append('circle')
             .attr('r', 4)
-            .attr('fill', '#3b82f6')
+            .attr('fill', d => getColor(d.properties.story_count))
             .attr('fill-opacity', 0.5);
 
         // 2. The "Stick" (Line rising from surface)
@@ -235,7 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .attr('class', 'volume-stick')
             .attr('x1', 0).attr('y1', 0)
             .attr('x2', 0).attr('y2', d => -Math.min(d.properties.story_count * 2, 60)) // Height based on count
-            .attr('stroke', '#3b82f6')
+            .attr('stroke', d => getColor(d.properties.story_count))
             .attr('stroke-width', 1)
             .attr('opacity', 0.7);
 
@@ -244,17 +266,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             .attr('class', 'volume-cap')
             .attr('cy', d => -Math.min(d.properties.story_count * 2, 60))
             .attr('r', d => Math.min(Math.max(d.properties.story_count / 2, 3), 12)) // Size based on count
-            .attr('fill', '#3b82f6')
+            .attr('fill', d => getColor(d.properties.story_count))
             .attr('stroke', '#fff')
             .attr('stroke-width', 1)
             .attr('cursor', 'pointer')
             .on('mouseover', (event, d) => {
                 showTooltip(event, d.properties);
-                d3.select(event.currentTarget).attr('fill', '#60a5fa');
+                // Lighten color on hover
+                const baseColor = getColor(d.properties.story_count);
+                const hoverColor = baseColor === '#ef4444' ? '#f87171' :
+                                  baseColor === '#f59e0b' ? '#fbbf24' : '#4ade80';
+                d3.select(event.currentTarget).attr('fill', hoverColor);
             })
-            .on('mouseout', (event) => {
+            .on('mouseout', (event, d) => {
                 hideTooltip();
-                d3.select(event.currentTarget).attr('fill', '#3b82f6');
+                d3.select(event.currentTarget).attr('fill', getColor(d.properties.story_count));
             })
             .on('click', (event, d) => {
                 openDrawer(d.properties);
@@ -409,6 +435,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 4000);
     }
 
+    // Update timestamp display
+    function updateTimestampDisplay() {
+        const timestampEl = document.getElementById('globe-timestamp');
+        if (!timestampEl || !globeMetadata.last_updated) return;
+
+        const lastUpdated = new Date(globeMetadata.last_updated);
+        const now = new Date();
+        const diffMs = now - lastUpdated;
+        const diffMins = Math.floor(diffMs / 60000);
+
+        let timeText;
+        if (diffMins < 1) {
+            timeText = 'Just updated';
+        } else if (diffMins < 60) {
+            timeText = `Updated ${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        } else {
+            const diffHours = Math.floor(diffMins / 60);
+            timeText = `Updated ${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        }
+
+        timestampEl.textContent = timeText;
+
+        // Also show total stats if available
+        if (globeMetadata.total_countries !== undefined) {
+            timestampEl.setAttribute('data-stats',
+                `${globeMetadata.total_countries} countries • ${globeMetadata.total_stories} stories`);
+        }
+    }
+
     // Update visible countries list for keyboard navigation
     function updateVisibleCountries() {
         const center = projection.invert([width / 2, height / 2]);
@@ -496,12 +551,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateVisibleCountries();
     };
 
+    // Helper: Get recency badge HTML
+    function getRecencyBadge(recency) {
+        const badges = {
+            'breaking': '<span class="recency-badge breaking">BREAKING</span>',
+            'recent': '<span class="recency-badge recent">NEW</span>',
+            'old': ''
+        };
+        return badges[recency] || '';
+    }
+
+    // Helper: Format relative time
+    function formatRelativeTime(dateString) {
+        if (!dateString) return '';
+
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+
+            return date.toLocaleDateString();
+        } catch (e) {
+            return dateString;
+        }
+    }
+
 
     // 4. UI Interactions (Tooltip & Drawer)
     function showTooltip(event, data) {
         const pop = data.population ? data.population.toLocaleString() : 'N/A';
         const area = data.area_sq_km ? data.area_sq_km.toLocaleString() + ' km²' : 'N/A';
         const langs = data.languages && data.languages.length ? data.languages.join(', ') : 'N/A';
+
+        // Determine volume level
+        const volumeLevel = data.story_count >= 15 ? 'High' :
+                           data.story_count >= 8 ? 'Medium' : 'Low';
+        const volumeColor = data.story_count >= 15 ? '#ef4444' :
+                            data.story_count >= 8 ? '#f59e0b' : '#22c55e';
 
         tooltip
             .style('opacity', 1)
@@ -514,8 +608,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     Area: ${area}<br/>
                     Languages: ${langs}
                 </div>
-                <div style="margin-top:4px; border-top:1px solid #444; padding-top:4px;">
-                    ${data.story_count} stories
+                <div style="margin-top:4px; border-top:1px solid #444; padding-top:4px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>${data.story_count} stories</span>
+                    <span style="background:${volumeColor}; color:white; padding:2px 8px; border-radius:4px; font-size:0.7em; font-weight:bold;">
+                        ${volumeLevel}
+                    </span>
                 </div>
             `);
     }
@@ -554,16 +651,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Populate stories after a brief delay (for smooth UX)
         requestAnimationFrame(() => {
             setTimeout(() => {
-                content.innerHTML = data.stories.map(story => `
-                    <div class="drawer-card">
-                        <h3><a href="${story.link}" target="_blank">${story.title}</a></h3>
+                content.innerHTML = data.stories.map(story => {
+                    const recency = story.recency || 'old';
+                    const recencyBadge = getRecencyBadge(recency);
+
+                    return `
+                    <div class="drawer-card" data-recency="${recency}">
+                        <div class="card-header">
+                            <h3><a href="${story.link}" target="_blank">${story.title}</a></h3>
+                            ${recencyBadge}
+                        </div>
                         <div class="meta">
                             <span>${story.source}</span>
-                            <span>${new Date(story.published).toLocaleDateString()}</span>
+                            <span>${formatRelativeTime(story.published)}</span>
                         </div>
                         <p>${story.summary.replace(/<[^>]*>?/gm, '').substring(0, 150)}...</p>
                     </div>
-                `).join('');
+                `}).join('');
 
                 // Announce to screen readers
                 announce(`Showing ${data.story_count} news stories from ${data.name}`);

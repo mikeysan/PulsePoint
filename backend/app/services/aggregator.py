@@ -1,5 +1,6 @@
 
 import logging
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 from flask import current_app
 from .. import cache
@@ -14,10 +15,11 @@ async def get_globe_data() -> Dict[str, Any]:
     """
     Fetches all RSS feeds and reorganizes them into a country-based structure
     suitable for the 3D Globe visualization.
-    
+
     Returns:
         Dict[str, Any]: A dictionary where keys are country ISO codes (e.g., "NG", "GB")
                         and values contain country metadata and a list of stories.
+                        Includes top-level metadata: last_updated timestamp.
     """
     # 1. Check Cache
     cached_data = cache.get(GLOBE_DATA_CACHE_KEY)
@@ -26,24 +28,34 @@ async def get_globe_data() -> Dict[str, Any]:
         return cached_data
 
     logger.info("Cache miss. Fetching fresh globe data...")
-    
+
+    # Record fetch time for timestamp display
+    fetch_time = datetime.now(timezone.utc)
+
     # 2. Setup Configuration Map
     feeds_config = current_app.config['RSS_FEEDS']
     # Map 'feed_name' -> config_dict for easy lookup later
     feed_config_map = {f['name']: f for f in feeds_config}
-    
+
     # 3. Fetch Feeds
     reader = RSSReader(
         timeout=current_app.config['REQUEST_TIMEOUT'],
         max_articles=current_app.config['MAX_ARTICLES_PER_FEED']
     )
-    
+
     # RSSReader.fetch_all_feeds takes a list of dicts with 'name' and 'url'
     # We can pass the whole config list as it contains those keys
     results = await reader.fetch_all_feeds(feeds_config)
-    
+
     # 4. Aggregate & Transform
     globe_data = {}
+
+    # Add metadata
+    globe_data['_meta'] = {
+        'last_updated': fetch_time.isoformat(),
+        'total_countries': 0,
+        'total_stories': 0
+    }
     
     for result in results:
         if not result.success:
@@ -75,21 +87,38 @@ async def get_globe_data() -> Dict[str, Any]:
         # Append stories
         # FeedResult.articles contains Article objects. We need to serialize them for JSON.
         for article in result.articles:
+            # Calculate recency category
+            recency = _calculate_recency(article.published_parsed if hasattr(article, 'published_parsed') and article.published_parsed else None)
+
             globe_data[country_iso]['stories'].append({
                 'title': article.title,
                 'link': article.link,
                 'source': article.source,
                 'published': article.published,
-                'summary': article.summary
+                'summary': article.summary,
+                'recency': recency  # Add recency category
             })
             
     # 5. Final cleanups (counts, sorting, etc.)
+    total_stories = 0
     for iso, country_data in globe_data.items():
+        if iso == '_meta':
+            continue
+
         country_data['story_count'] = len(country_data['stories'])
-        # Sort stories by date? They might already be sorted per feed, but not mixed.
-        # Simple string comparison on published date is risky, but acceptable for MVP 
-        # given generic RSS date formats. Better to use the parsed date if we exposed it more easily.
-        # For now, we trust the order or leave it mixed.
+        total_stories += country_data['story_count']
+
+        # Sort stories by recency (most recent first)
+        # Stories with recency 'breaking' come first, then 'recent', then 'old'
+        country_data['stories'].sort(key=lambda s: (
+            0 if s['recency'] == 'breaking' else 1 if s['recency'] == 'recent' else 2,
+            s.get('published', '')
+        ), reverse=True)
+
+    # Update metadata totals
+    if '_meta' in globe_data:
+        globe_data['_meta']['total_countries'] = len([k for k in globe_data.keys() if k != '_meta'])
+        globe_data['_meta']['total_stories'] = total_stories
         
     # 6. Cache the result
     # Cache duration: 5-10 minutes (300-600s). Config has CACHE_RSS_TIMEOUT (600s)
@@ -220,3 +249,31 @@ def _get_country_details(iso_code: str) -> Dict[str, Any]:
     }
     
     return data.get(iso_code, defaults)
+
+
+def _calculate_recency(published_date: datetime) -> str:
+    """
+    Calculate story recency category based on publication date.
+
+    Args:
+        published_date: datetime object of when the story was published
+
+    Returns:
+        str: Recency category - 'breaking' (<1h), 'recent' (<24h), or 'old' (>24h)
+    """
+    if not published_date:
+        return 'old'
+
+    now = datetime.now(timezone.utc)
+    time_diff = now - published_date
+
+    # Breaking: Less than 1 hour old
+    if time_diff.total_seconds() < 3600:
+        return 'breaking'
+
+    # Recent: Less than 24 hours old
+    if time_diff.total_seconds() < 86400:
+        return 'recent'
+
+    # Old: 24 hours or more
+    return 'old'
