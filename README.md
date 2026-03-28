@@ -14,23 +14,13 @@ PulsePoint is a modern, minimalist RSS news aggregator that consolidates live fe
 - 🔒 **Security-first** — Input sanitization, XSS protection, security headers
 - 💾 **Smart caching** — Reduces load and respects rate limits
 - 🧪 **Comprehensive tests** — 27+ unit tests with pytest
-- 🐳 **Docker-ready** — Production-ready containerization
+- 🧪 **Comprehensive tests** — 27+ unit tests with pytest
 - 🚀 **CI/CD** — Automated testing with GitHub Actions
 
 ## News Sources
 
-PulsePoint aggregates news from:
+PulsePoint aggregates news from multiple news sources from around the world.
 
-- BBC News
-- The Guardian
-- Sky News
-- Al Jazeera
-- TechCrunch
-- Wired
-- The Verge
-- NASA
-- CNN
-- NPR
 
 ## Tech Stack
 
@@ -54,7 +44,8 @@ PulsePoint aggregates news from:
 **Deployment:**
 - Gunicorn (WSGI server)
 - Nginx (reverse proxy)
-- Docker (containerization)
+- Gunicorn (WSGI server)
+- Nginx (reverse proxy)
 
 ## Quick Start
 
@@ -62,7 +53,8 @@ PulsePoint aggregates news from:
 
 - Python 3.11+
 - pip
-- (Optional) Docker and Docker Compose
+- Python 3.11+
+- pip
 
 ### Local Development
 
@@ -109,23 +101,7 @@ pytest --cov=app tests/
 pytest --maxfail=1 --disable-warnings -q
 ```
 
-### Docker Deployment
 
-1. **Build the image:**
-   ```bash
-   docker build -f docker/Dockerfile -t pulsepoint:latest .
-   ```
-
-2. **Run the container:**
-   ```bash
-   docker run -p 8000:8000 -e FLASK_ENV=production pulsepoint:latest
-   ```
-
-3. **With Nginx (production setup):**
-   ```bash
-   # Use docker-compose (create your own docker-compose.yml)
-   docker-compose up -d
-   ```
 
 ## Project Structure
 
@@ -158,10 +134,7 @@ PulsePoint/
 │       ├── base.html
 │       └── index.html
 │
-├── docker/
-│   ├── Dockerfile
-│   └── nginx.conf
-│
+
 ├── .github/
 │   └── workflows/
 │       └── tests.yml
@@ -241,7 +214,7 @@ Health check endpoint for monitoring.
 - **XSS Protection** — HTML tags stripped from titles and summaries
 - **URL Validation** — Only HTTP/HTTPS URLs allowed
 - **Security Headers** — Flask-Talisman enforces HTTPS and CSP in production
-- **Non-root Docker** — Container runs as unprivileged user
+- **Security Headers** — Flask-Talisman enforces HTTPS and CSP in production
 - **Rate Limiting** — Caching prevents excessive RSS requests
 
 ## Testing

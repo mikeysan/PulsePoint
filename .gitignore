@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+.python-version
 build/
 develop-eggs/
 dist/
@@ -98,7 +99,11 @@ ipython_config.py
 #   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
 #   commonly ignored for libraries.
-#uv.lock
+# UV
+#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+uv.lock
 
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
@@ -208,3 +213,15 @@ __marimo__/
 
 # Server Configuration (Security - keep private)
 SERVER_SECURITY_SETUP.md
+
+# Planning documents
+
+# Agent & AI Tools
+.agent/
+.claude/
+.shared/
+.github/
+# Verify Venv
+backend/venv_verify/
+
+Modelfile-64k

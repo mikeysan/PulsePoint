@@ -8,14 +8,35 @@ from flask import Blueprint, render_template, jsonify, current_app, request, mak
 
 from . import cache
 from .services.rss_reader import RSSReader
+from .services.aggregator import get_globe_data
 
 # Create blueprint
 main_bp = Blueprint('main', __name__)
 
 
+@main_bp.route('/globe')
+def globe_view():
+    """
+    Render the 3D Globe visualization.
+    """
+    return render_template('globe_view.html')
+
+
 @main_bp.route('/')
 @cache.cached(timeout=300)  # Cache for 5 minutes (configurable via CACHE_PAGE_TIMEOUT)
 def index():
+    """
+    Render the 3D Globe visualization as the default landing page.
+
+    Returns:
+        HTML: Rendered globe template
+    """
+    return render_template('globe_view.html')
+
+
+@main_bp.route('/feed')
+@cache.cached(timeout=300)  # Cache for 5 minutes (configurable via CACHE_PAGE_TIMEOUT)
+def news_feed():
     """
     Render the main news feed page.
 
@@ -32,13 +53,23 @@ def index():
         reader = RSSReader(timeout=timeout, max_articles=max_articles)
 
         # Fetch all feeds (run async in sync context)
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         try:
-            feed_results = loop.run_until_complete(reader.fetch_all_feeds(feeds))
+            feed_results = asyncio.run(reader.fetch_all_feeds(feeds))
             articles = reader.get_all_articles(feed_results)
-        finally:
-            loop.close()
+        except RuntimeError as e:
+            # Handle case where event loop is already running (e.g., in tests)
+            if "event loop is already running" in str(e):
+                loop = asyncio.get_running_loop()
+                # Create a task to run the coroutine in the existing loop
+                # This is tricky in a sync function, we might need to rely on the loop being run elsewhere
+                # or use a thread to isolate execution.
+                # For simplicity in this fix, fallback to running in a separate thread
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    feed_results = pool.submit(asyncio.run, reader.fetch_all_feeds(feeds)).result()
+                articles = reader.get_all_articles(feed_results)
+            else:
+                raise e
 
         return render_template('index.html', articles=articles)
 
@@ -66,13 +97,17 @@ def get_news():
         reader = RSSReader(timeout=timeout, max_articles=max_articles)
 
         # Fetch all feeds
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         try:
-            feed_results = loop.run_until_complete(reader.fetch_all_feeds(feeds))
+            feed_results = asyncio.run(reader.fetch_all_feeds(feeds))
             articles = reader.get_all_articles(feed_results)
-        finally:
-            loop.close()
+        except RuntimeError as e:
+            if "event loop is already running" in str(e):
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    feed_results = pool.submit(asyncio.run, reader.fetch_all_feeds(feeds)).result()
+                articles = reader.get_all_articles(feed_results)
+            else:
+                raise e
 
         # Convert articles to dictionaries
         articles_data = [article.to_dict() for article in articles]
@@ -95,6 +130,29 @@ def health_check():
         JSON: Health status
     """
     return jsonify({'status': 'healthy', 'service': 'PulsePoint'})
+
+
+@main_bp.route('/api/globe-data')
+def get_globe_data_api():
+    """
+    API endpoint to get aggregated globe data.
+    """
+    try:
+        # Run async aggregator in sync context
+        try:
+            data = asyncio.run(get_globe_data())
+        except RuntimeError as e:
+            if "event loop is already running" in str(e):
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    data = pool.submit(asyncio.run, get_globe_data()).result()
+            else:
+                raise e
+            
+        return jsonify(data)
+    except Exception as e:
+        current_app.logger.error(f"Globe API Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 @main_bp.route('/api/performance')
