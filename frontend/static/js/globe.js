@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Lighten color on hover
                 const baseColor = getColor(d.properties.story_count);
                 const hoverColor = baseColor === '#ef4444' ? '#f87171' :
-                                  baseColor === '#f59e0b' ? '#fbbf24' : '#4ade80';
+                    baseColor === '#f59e0b' ? '#fbbf24' : '#4ade80';
                 d3.select(event.currentTarget).attr('fill', hoverColor);
             })
             .on('mouseout', (event, d) => {
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Inertia Rotation Logic
     let velocity = [0.1, 0]; // Initial auto-rotation velocity [lon, lat]
-    let lastTime = d3.now();
+    let lastTime = 0; // elapsed starts at 0 in d3.timer
     let dragVelocity = [0, 0];
 
     // Performance optimization: Throttle redraws with requestAnimationFrame
@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Resume loop
             isRotating = true;
-            lastTime = d3.now();
+            lastTime = 0; // Reset to match elapsed time scale
         });
 
     container.call(drag);
@@ -505,7 +505,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.on('keydown', (event) => {
         const rotateSpeed = 2; // Degrees per keypress
 
-        switch(event.key) {
+        switch (event.key) {
             case 'ArrowLeft':
                 event.preventDefault();
                 const rotateLeft = projection.rotate();
@@ -571,7 +571,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Update visible countries when globe rotates
     const originalRedraw = redraw;
-    redraw = function() {
+    redraw = function () {
         originalRedraw();
         updateVisibleCountries();
     };
@@ -618,9 +618,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Determine volume level
         const volumeLevel = data.story_count >= 15 ? 'High' :
-                           data.story_count >= 8 ? 'Medium' : 'Low';
+            data.story_count >= 8 ? 'Medium' : 'Low';
         const volumeColor = data.story_count >= 15 ? '#ef4444' :
-                            data.story_count >= 8 ? '#f59e0b' : '#22c55e';
+            data.story_count >= 8 ? '#f59e0b' : '#22c55e';
 
         tooltip
             .style('opacity', 1)
@@ -672,7 +672,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const targetRotate = [-targetLng, -targetLat];
 
         const startRotate = projection.rotate();
-        const startTime = d3.now();
 
         // CRITICAL: Pause main rotation timer to prevent timer conflict
         isRotating = false;
@@ -681,7 +680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         return new Promise((resolve) => {
             d3.timer((elapsed) => {
-                const t = (elapsed - startTime) / duration;
+                const t = elapsed / duration; // elapsed starts at 0 for this timer
 
                 if (t >= 1) {
                     projection.rotate(targetRotate);
@@ -691,7 +690,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     isRotating = true;
                     // Reset velocity to auto-spin target
                     velocity = [0.1, 0];
-                    lastTime = d3.now();
+                    lastTime = 0; // Reset to match elapsed time scale
 
                     resolve();
                     return true; // Stop timer
@@ -768,7 +767,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Populate stories after a brief delay (for smooth UX)
         requestAnimationFrame(() => {
             setTimeout(() => {
-                content.innerHTML = data.stories.map((story, index) => {
+                // Sort stories by recency priority, then by publish date
+                const recencyPriority = { 'breaking': 0, 'recent': 1, 'old': 2 };
+                const sortedStories = [...data.stories].sort((a, b) => {
+                    const priorityA = recencyPriority[a.recency || 'old'];
+                    const priorityB = recencyPriority[b.recency || 'old'];
+
+                    if (priorityA !== priorityB) {
+                        return priorityA - priorityB; // Sort by recency priority
+                    }
+
+                    // Within same recency level, sort by publish date (newest first)
+                    return new Date(b.published) - new Date(a.published);
+                });
+
+                content.innerHTML = sortedStories.map((story, index) => {
                     const recency = story.recency || 'old';
                     const recencyBadge = getRecencyBadge(recency);
                     const animationDelay = index * 0.08; // Stagger by 80ms
