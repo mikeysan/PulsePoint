@@ -517,6 +517,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.on('keydown', (event) => {
         const rotateSpeed = 2; // Degrees per keypress
 
+        // Check if drawer is open for different keyboard handling
+        const drawer = document.getElementById('sideDrawer');
+        const isDrawerOpen = drawer && drawer.classList.contains('active');
+
         switch (event.key) {
             case 'ArrowLeft':
                 event.preventDefault();
@@ -553,33 +557,218 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'Enter':
             case ' ':
                 event.preventDefault();
-                // Select the country with most stories currently visible
-                updateVisibleCountries();
-                if (visibleCountries.length > 0) {
-                    const country = visibleCountries[0]; // Highest story count
-                    announce(`Opening ${country.name} news with ${country.story_count} stories`);
-                    openDrawer(country);
+                if (isDrawerOpen) {
+                    // Open first story link if drawer is open
+                    const firstLink = drawer.querySelector('.card-title a');
+                    if (firstLink) {
+                        announce('Opening article in new tab');
+                        firstLink.click();
+                    }
                 } else {
-                    announce('No countries visible. Use arrow keys to rotate the globe.');
+                    // Select the country with most stories currently visible
+                    updateVisibleCountries();
+                    if (visibleCountries.length > 0) {
+                        const country = visibleCountries[0]; // Highest story count
+                        announce(`Opening ${country.name} news with ${country.story_count} stories`);
+                        openDrawer(country);
+                    } else {
+                        announce('No countries visible. Use arrow keys to rotate the globe.');
+                    }
                 }
                 break;
 
             case 'Escape':
                 event.preventDefault();
-                // Close drawer if open
-                const drawer = document.getElementById('sideDrawer');
-                if (drawer && drawer.classList.contains('active')) {
+                // Close drawer or help overlay if open
+                if (isDrawerOpen) {
                     closeDrawer();
                     announce('News drawer closed');
                     container.focus(); // Return focus to globe
+                } else {
+                    const helpOverlay = document.getElementById('keyboard-help');
+                    if (helpOverlay && helpOverlay.classList.contains('active')) {
+                        closeKeyboardHelp();
+                    }
                 }
                 break;
+
+            case 'j':
+            case 'J':
+                event.preventDefault();
+                if (isDrawerOpen) {
+                    navigateStories('next');
+                } else {
+                    announce('Open a country drawer first to navigate stories');
+                }
+                break;
+
+            case 'k':
+            case 'K':
+                event.preventDefault();
+                if (isDrawerOpen) {
+                    navigateStories('prev');
+                } else {
+                    announce('Open a country drawer first to navigate stories');
+                }
+                break;
+
+            case '?':
+                event.preventDefault();
+                toggleKeyboardHelp();
+                break;
+
+            case 'Tab':
+            case 'Shift+Tab':
+                // Let browser handle Tab navigation natively
+                // Just ensure focus indicators are visible
+                return;
 
             default:
                 // Let other keys pass through
                 return;
         }
     });
+
+    // Helper: Navigate between story cards with J/K keys
+    function navigateStories(direction) {
+        const drawer = document.getElementById('sideDrawer');
+        if (!drawer || !drawer.classList.contains('active')) return;
+
+        const cards = Array.from(drawer.querySelectorAll('.drawer-card'));
+        if (cards.length === 0) return;
+
+        // Find currently focused card or title link
+        const currentFocus = document.activeElement;
+        let currentIndex = cards.findIndex(card =>
+            card.contains(currentFocus) || card === currentFocus
+        );
+
+        // Calculate new index
+        let newIndex;
+        if (currentIndex === -1) {
+            // No card currently focused, start from top or bottom
+            newIndex = direction === 'next' ? 0 : cards.length - 1;
+        } else {
+            newIndex = direction === 'next'
+                ? (currentIndex + 1) % cards.length
+                : (currentIndex - 1 + cards.length) % cards.length;
+        }
+
+        // Focus the title link in the new card
+        const titleLink = cards[newIndex].querySelector('.card-title a');
+        if (titleLink) {
+            titleLink.focus();
+
+            // Announce the story for screen readers
+            const storyTitle = titleLink.textContent.trim();
+            const position = newIndex + 1;
+            const total = cards.length;
+            announce(`Story ${position} of ${total}: ${storyTitle}`);
+        }
+    }
+
+    // Helper: Toggle keyboard shortcuts help overlay
+    function toggleKeyboardHelp() {
+        const helpOverlay = document.getElementById('keyboard-help');
+
+        if (!helpOverlay) {
+            createKeyboardHelpOverlay();
+            return;
+        }
+
+        if (helpOverlay.classList.contains('active')) {
+            closeKeyboardHelp();
+        } else {
+            helpOverlay.classList.add('active');
+            helpOverlay.setAttribute('aria-hidden', 'false');
+            announce('Keyboard shortcuts help opened');
+        }
+    }
+
+    // Helper: Close keyboard shortcuts help overlay
+    function closeKeyboardHelp() {
+        const helpOverlay = document.getElementById('keyboard-help');
+        if (helpOverlay) {
+            helpOverlay.classList.remove('active');
+            helpOverlay.setAttribute('aria-hidden', 'true');
+            announce('Keyboard shortcuts help closed');
+            container.focus();
+        }
+    }
+
+    // Helper: Create keyboard shortcuts help overlay
+    function createKeyboardHelpOverlay() {
+        const helpHTML = `
+            <div id="keyboard-help" class="keyboard-help-overlay" aria-hidden="true" role="dialog" aria-labelledby="keyboard-help-title">
+                <div class="keyboard-help-content">
+                    <div class="keyboard-help-header">
+                        <h2 id="keyboard-help-title">⌨️ Keyboard Shortcuts</h2>
+                        <button class="keyboard-help-close" aria-label="Close keyboard shortcuts help" onclick="closeKeyboardHelp()">×</button>
+                    </div>
+                    <div class="keyboard-help-body">
+                        <div class="shortcut-section">
+                            <h3>Globe Navigation</h3>
+                            <div class="shortcut-list">
+                                <div class="shortcut-item">
+                                    <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>
+                                    <span>Rotate the globe</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Enter</kbd> / <kbd>Space</kbd>
+                                    <span>Select country & open news</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="shortcut-section">
+                            <h3>News Drawer</h3>
+                            <div class="shortcut-list">
+                                <div class="shortcut-item">
+                                    <kbd>Tab</kbd>
+                                    <span>Navigate between stories</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>J</kbd>
+                                    <span>Next story (Vim-style)</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>K</kbd>
+                                    <span>Previous story (Vim-style)</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Enter</kbd>
+                                    <span>Open article in new tab</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Escape</kbd>
+                                    <span>Close drawer</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="shortcut-section">
+                            <h3>General</h3>
+                            <div class="shortcut-list">
+                                <div class="shortcut-item">
+                                    <kbd>?</kbd>
+                                    <span>Show this help</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Escape</kbd>
+                                    <span>Close overlays</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="keyboard-help-backdrop" onclick="closeKeyboardHelp()"></div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', helpHTML);
+        const helpOverlay = document.getElementById('keyboard-help');
+        helpOverlay.classList.add('active');
+        helpOverlay.setAttribute('aria-hidden', 'false');
+        announce('Keyboard shortcuts help opened');
+    }
 
     // Update visible countries when globe rotates
     const originalRedraw = redraw;
@@ -616,6 +805,49 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (diffDays < 7) return `${diffDays}d ago`;
 
             return date.toLocaleDateString();
+        } catch (e) {
+            return dateString;
+        }
+    }
+
+    // Helper: Calculate reading time from summary text
+    function calculateReadingTime(summary) {
+        if (!summary) return '< 1 min read';
+
+        const wordsPerMinute = 200;
+        // Strip HTML tags and count words
+        const text = summary.replace(/<[^>]*>?/gm, '');
+        const words = text.split(/\s+/).filter(w => w.length > 0).length;
+        const minutes = Math.ceil(words / wordsPerMinute);
+
+        return minutes < 1 ? '< 1 min read' : `${minutes} min read`;
+    }
+
+    // Helper: Extract domain from URL for source attribution
+    function extractDomain(url) {
+        if (!url) return 'unknown';
+
+        try {
+            const hostname = new URL(url).hostname;
+            return hostname.replace('www.', '');
+        } catch (e) {
+            return 'unknown';
+        }
+    }
+
+    // Helper: Format absolute date for tooltip
+    function formatAbsoluteDate(dateString) {
+        if (!dateString) return '';
+
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         } catch (e) {
             return dateString;
         }
@@ -798,18 +1030,44 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const recencyBadge = getRecencyBadge(recency);
                     const animationDelay = index * 0.08; // Stagger by 80ms
 
+                    // Enhanced metadata
+                    const domain = extractDomain(story.link);
+                    const readingTime = calculateReadingTime(story.summary);
+                    const absoluteDate = formatAbsoluteDate(story.published);
+                    const cleanSummary = story.summary.replace(/<[^>]*>?/gm, '').trim();
+
                     return `
-                    <div class="drawer-card" data-recency="${recency}" style="animation-delay: ${animationDelay}s">
+                    <article class="drawer-card" data-recency="${recency}" style="animation-delay: ${animationDelay}s">
                         <div class="card-header">
-                            <h3><a href="${story.link}" target="_blank">${story.title}</a></h3>
+                            <h3 class="card-title">
+                                <a href="${story.link}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   aria-label="Read full article on ${story.source} (opens in new tab)">
+                                    ${story.title}
+                                    <span class="external-icon" aria-hidden="true">↗</span>
+                                </a>
+                            </h3>
                             ${recencyBadge}
                         </div>
                         <div class="meta">
-                            <span>${story.source}</span>
-                            <span>${formatRelativeTime(story.published)}</span>
+                            <span class="meta-source" title="Source: ${domain}">
+                                <span class="source-icon" aria-hidden="true">📰</span>
+                                ${story.source}
+                            </span>
+                            <span class="meta-domain">${domain}</span>
+                            <span class="meta-time" title="${absoluteDate}">
+                                <time datetime="${story.published}">${formatRelativeTime(story.published)}</time>
+                            </span>
+                            <span class="meta-read-time" title="Estimated reading time">
+                                <span aria-hidden="true">📖</span>
+                                ${readingTime}
+                            </span>
                         </div>
-                        <p>${story.summary.replace(/<[^>]*>?/gm, '').substring(0, 150)}...</p>
-                    </div>
+                        <div class="card-summary">
+                            <p class="summary-text">${cleanSummary.substring(0, 180)}...</p>
+                        </div>
+                    </article>
                 `}).join('');
 
                 // Trigger reflow to start animations
@@ -835,6 +1093,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Return focus to globe
         container.focus();
     };
+
+    // Expose keyboard help function globally for HTML onclick handlers
+    window.closeKeyboardHelp = closeKeyboardHelp;
+
+    // Keyboard help button click handler
+    const keyboardHelpButton = document.getElementById('keyboard-help-button');
+    if (keyboardHelpButton) {
+        keyboardHelpButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleKeyboardHelp();
+        });
+    }
 
     // Zoom Support (Optional)
     const zoom = d3.zoom()
