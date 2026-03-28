@@ -955,100 +955,98 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (focusTrapCleanup) focusTrapCleanup();
             focusTrapCleanup = activateFocusTrap(drawer);
 
+            // Render content after flyTo completes so skeletons are visible
+            // for the full duration of the globe rotation animation
+            const recencyPriority = { breaking: 0, recent: 1, old: 2 };
+            const sortedStories = [...data.stories].sort((a, b) => {
+                const priorityA = recencyPriority[a.recency || 'old'];
+                const priorityB = recencyPriority[b.recency || 'old'];
+
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+
+                return new Date(b.published) - new Date(a.published);
+            });
+
+            // Country metadata summary — provides keyboard users with
+            // the same demographic context that mouse users see in the tooltip
+            const pop = data.population ? data.population.toLocaleString() : null;
+            const area = data.area_sq_km ? `${data.area_sq_km.toLocaleString()} km²` : null;
+            const langs = data.languages && data.languages.length ? data.languages.join(', ') : null;
+            const volumeLevel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
+            const volumeColor = data.story_count >= 15 ? '#ef4444' : data.story_count >= 8 ? '#f59e0b' : '#22c55e';
+
+            const metaItems = [
+                pop ? `<span>Pop: ${pop}</span>` : '',
+                area ? `<span>Area: ${area}</span>` : '',
+                langs ? `<span>Languages: ${langs}</span>` : ''
+            ].filter(Boolean).join('<span class="country-meta-sep" aria-hidden="true"> · </span>');
+
+            const countrySummaryHTML = `
+                <div class="drawer-country-summary" role="region" aria-label="Country information">
+                    <div class="country-meta-row">${metaItems}</div>
+                    <div class="country-volume-row">
+                        <span>${data.story_count} stories</span>
+                        <span class="volume-badge" style="background:${volumeColor};">${volumeLevel}</span>
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = countrySummaryHTML + sortedStories.map((story, index) => {
+                const recency = story.recency || 'old';
+                const recencyBadge = getRecencyBadge(recency);
+                const animationDelay = index * 0.08;
+                const domain = extractDomain(story.link);
+                const readingTime = calculateReadingTime(story.summary);
+                const absoluteDate = formatAbsoluteDate(story.published);
+                const cleanSummary = story.summary.replace(/<[^>]*>?/gm, '').trim();
+
+                return `
+                    <article class="drawer-card" data-recency="${recency}" style="animation-delay: ${animationDelay}s">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <a href="${story.link}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   aria-label="Read full article on ${story.source} (opens in new tab)">
+                                    ${story.title}
+                                    <span class="external-icon" aria-hidden="true">↗</span>
+                                </a>
+                            </h3>
+                            ${recencyBadge}
+                        </div>
+                        <div class="meta">
+                            <span class="meta-source" title="Source: ${domain}">
+                                <span class="source-icon" aria-hidden="true">📰</span>
+                                ${story.source}
+                            </span>
+                            <span class="meta-domain">${domain}</span>
+                            <span class="meta-time" title="${absoluteDate}">
+                                <time datetime="${story.published}">${formatRelativeTime(story.published)}</time>
+                            </span>
+                            <span class="meta-read-time" title="Estimated reading time">
+                                <span aria-hidden="true">📖</span>
+                                ${readingTime}
+                            </span>
+                        </div>
+                        <div class="card-summary">
+                            <p class="summary-text">${cleanSummary.substring(0, 180)}...</p>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+
+            content.querySelectorAll('.drawer-card').forEach(card => {
+                card.classList.add('card-entrance');
+            });
+
+            const volLabel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
+            announce(`Showing ${data.story_count} news stories from ${data.name}. Volume: ${volLabel}.`);
+
             setTimeout(() => {
                 closeBtn.focus();
             }, 100);
-        });
-
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                const recencyPriority = { breaking: 0, recent: 1, old: 2 };
-                const sortedStories = [...data.stories].sort((a, b) => {
-                    const priorityA = recencyPriority[a.recency || 'old'];
-                    const priorityB = recencyPriority[b.recency || 'old'];
-
-                    if (priorityA !== priorityB) {
-                        return priorityA - priorityB;
-                    }
-
-                    return new Date(b.published) - new Date(a.published);
-                });
-
-                // Country metadata summary — provides keyboard users with
-                // the same demographic context that mouse users see in the tooltip
-                const pop = data.population ? data.population.toLocaleString() : null;
-                const area = data.area_sq_km ? `${data.area_sq_km.toLocaleString()} km²` : null;
-                const langs = data.languages && data.languages.length ? data.languages.join(', ') : null;
-                const volumeLevel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
-                const volumeColor = data.story_count >= 15 ? '#ef4444' : data.story_count >= 8 ? '#f59e0b' : '#22c55e';
-
-                const metaItems = [
-                    pop ? `<span>Pop: ${pop}</span>` : '',
-                    area ? `<span>Area: ${area}</span>` : '',
-                    langs ? `<span>Languages: ${langs}</span>` : ''
-                ].filter(Boolean).join('<span class="country-meta-sep" aria-hidden="true"> · </span>');
-
-                const countrySummaryHTML = `
-                    <div class="drawer-country-summary" role="region" aria-label="Country information">
-                        <div class="country-meta-row">${metaItems}</div>
-                        <div class="country-volume-row">
-                            <span>${data.story_count} stories</span>
-                            <span class="volume-badge" style="background:${volumeColor};">${volumeLevel}</span>
-                        </div>
-                    </div>
-                `;
-
-                content.innerHTML = countrySummaryHTML + sortedStories.map((story, index) => {
-                    const recency = story.recency || 'old';
-                    const recencyBadge = getRecencyBadge(recency);
-                    const animationDelay = index * 0.08;
-                    const domain = extractDomain(story.link);
-                    const readingTime = calculateReadingTime(story.summary);
-                    const absoluteDate = formatAbsoluteDate(story.published);
-                    const cleanSummary = story.summary.replace(/<[^>]*>?/gm, '').trim();
-
-                    return `
-                        <article class="drawer-card" data-recency="${recency}" style="animation-delay: ${animationDelay}s">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <a href="${story.link}"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       aria-label="Read full article on ${story.source} (opens in new tab)">
-                                        ${story.title}
-                                        <span class="external-icon" aria-hidden="true">↗</span>
-                                    </a>
-                                </h3>
-                                ${recencyBadge}
-                            </div>
-                            <div class="meta">
-                                <span class="meta-source" title="Source: ${domain}">
-                                    <span class="source-icon" aria-hidden="true">📰</span>
-                                    ${story.source}
-                                </span>
-                                <span class="meta-domain">${domain}</span>
-                                <span class="meta-time" title="${absoluteDate}">
-                                    <time datetime="${story.published}">${formatRelativeTime(story.published)}</time>
-                                </span>
-                                <span class="meta-read-time" title="Estimated reading time">
-                                    <span aria-hidden="true">📖</span>
-                                    ${readingTime}
-                                </span>
-                            </div>
-                            <div class="card-summary">
-                                <p class="summary-text">${cleanSummary.substring(0, 180)}...</p>
-                            </div>
-                        </article>
-                    `;
-                }).join('');
-
-                content.querySelectorAll('.drawer-card').forEach(card => {
-                    card.classList.add('card-entrance');
-                });
-
-                const volLabel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
-                announce(`Showing ${data.story_count} news stories from ${data.name}. Volume: ${volLabel}.`);
-            }, 150);
         });
     }
 
