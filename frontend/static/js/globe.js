@@ -36,9 +36,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     let globeMetadata = {};
     let flyToTimer = null;
 
-    let isRotating = true;
+    // Respect OS-level motion preference (WCAG 2.3.3)
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let isRotating = !prefersReducedMotion;
     let lastTime = 0;
-    let velocity = [0.1, 0];
+    let velocity = prefersReducedMotion ? [0, 0] : [0.1, 0];
     let dragVelocity = [0, 0];
     let skipFrame = false;
 
@@ -268,19 +271,49 @@ document.addEventListener('DOMContentLoaded', async () => {
             return '#22c55e';
         };
 
+        const getHoverColor = (count) => {
+            const base = getColor(count);
+            if (base === '#ef4444') return '#f87171';
+            if (base === '#f59e0b') return '#fbbf24';
+            return '#4ade80';
+        };
+
         const markerGroups = gBeacons.selectAll('g.marker-group')
             .data(beacons)
             .enter()
             .append('g')
             .attr('class', 'marker-group')
-            .on('mouseenter', () => {
+            .on('mouseenter', (event, d) => {
                 pauseState.hover = true;
                 syncRotationState();
+                showTooltip(event, d.properties);
+                const cap = d3.select(event.currentTarget).select('.volume-cap');
+                cap.attr('fill', getHoverColor(d.properties.story_count));
             })
-            .on('mouseleave', () => {
+            .on('mouseleave', (event, d) => {
                 pauseState.hover = false;
                 syncRotationState();
+                hideTooltip();
+                const cap = d3.select(event.currentTarget).select('.volume-cap');
+                cap.attr('fill', getColor(d.properties.story_count));
+            })
+            .on('click', (_, d) => {
+                // Clicking a beacon may leave hover stuck if the drawer/backdrop takes over.
+                // Clear hover explicitly, then pause through flyTo/drawer state instead.
+                pauseState.hover = false;
+                velocity = [0, 0];
+                hideTooltip();
+                syncRotationState();
+                openDrawer(d.properties);
             });
+
+        // Invisible hit-area circle for accessible 44px minimum target size
+        markerGroups.append('circle')
+            .attr('class', 'hit-area')
+            .attr('cy', d => -Math.min(d.properties.story_count * 2, 60))
+            .attr('r', 22)
+            .attr('fill', 'transparent')
+            .attr('cursor', 'pointer');
 
         markerGroups.append('circle')
             .attr('r', 4)
@@ -304,30 +337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .attr('fill', d => getColor(d.properties.story_count))
             .attr('stroke', '#fff')
             .attr('stroke-width', 1)
-            .attr('cursor', 'pointer')
-            .on('mouseover', (event, d) => {
-                showTooltip(event, d.properties);
-                const baseColor = getColor(d.properties.story_count);
-                const hoverColor = baseColor === '#ef4444'
-                    ? '#f87171'
-                    : baseColor === '#f59e0b'
-                        ? '#fbbf24'
-                        : '#4ade80';
-                d3.select(event.currentTarget).attr('fill', hoverColor);
-            })
-            .on('mouseout', (event, d) => {
-                hideTooltip();
-                d3.select(event.currentTarget).attr('fill', getColor(d.properties.story_count));
-            })
-            .on('click', (_, d) => {
-                // Clicking a beacon may leave hover stuck if the drawer/backdrop takes over.
-                // Clear hover explicitly, then pause through flyTo/drawer state instead.
-                pauseState.hover = false;
-                velocity = [0, 0];
-                hideTooltip();
-                syncRotationState();
-                openDrawer(d.properties);
-            });
+            .attr('cursor', 'pointer');
 
         markerGroups.filter(d => d.properties.story_count > 5)
             .append('circle')
@@ -645,6 +655,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function createKeyboardHelpOverlay() {
         const helpHTML = `
             <div id="keyboard-help" class="keyboard-help-overlay active" aria-hidden="false" role="dialog" aria-labelledby="keyboard-help-title">
+                <div class="keyboard-help-content">
                 <div class="keyboard-help-header">
                     <h2 id="keyboard-help-title">⌨️ Keyboard Shortcuts</h2>
                     <button class="keyboard-help-close" aria-label="Close keyboard shortcuts help" onclick="closeKeyboardHelp()">×</button>
@@ -701,6 +712,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
             <div class="keyboard-help-backdrop" onclick="closeKeyboardHelp()"></div>
@@ -793,9 +805,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const volumeColor = data.story_count >= 15 ? '#ef4444' : data.story_count >= 8 ? '#f59e0b' : '#22c55e';
 
         tooltip
-            .style('opacity', 1)
-            .style('left', `${event.pageX}px`)
-            .style('top', `${event.pageY - 10}px`)
+            .style('opacity', 0)
             .html(`
                 <strong>${data.name}</strong><br/>
                 <div style="margin-top:4px; font-size:0.8em; line-height:1.4; color:#ccc;">
@@ -810,6 +820,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </span>
                 </div>
             `);
+
+        // Viewport edge detection: clamp tooltip position to stay fully visible
+        const node = tooltip.node();
+        const rect = node.getBoundingClientRect();
+        const margin = 8;
+        let left = event.pageX;
+        let top = event.pageY - 10;
+
+        // Clamp horizontal: prevent overflow on left or right
+        if (left + rect.width / 2 > window.innerWidth - margin) {
+            left = window.innerWidth - rect.width / 2 - margin;
+        }
+        if (left - rect.width / 2 < margin) {
+            left = rect.width / 2 + margin;
+        }
+
+        // Flip vertical: if tooltip would overflow top, show below cursor instead
+        if (top - rect.height < margin) {
+            top = event.pageY + rect.height + 10;
+        }
+
+        tooltip
+            .style('left', `${left}px`)
+            .style('top', `${top}px`)
+            .style('opacity', 1);
     }
 
     function hideTooltip() {
@@ -863,6 +898,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Focus trap for modal drawer (ARIA Authoring Practices: Dialog Modal)
+    let focusTrapCleanup = null;
+
+    function activateFocusTrap(drawerEl) {
+        function handleKeydown(e) {
+            if (e.key !== 'Tab') return;
+
+            const focusable = drawerEl.querySelectorAll(
+                'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusable.length === 0) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+
+        drawerEl.addEventListener('keydown', handleKeydown);
+
+        // Return cleanup function
+        return () => drawerEl.removeEventListener('keydown', handleKeydown);
+    }
+
     function openDrawer(data) {
         const drawer = document.getElementById('sideDrawer');
         const backdrop = document.getElementById('drawerBackdrop');
@@ -891,75 +956,102 @@ document.addEventListener('DOMContentLoaded', async () => {
             backdrop.classList.add('active');
             drawer.setAttribute('aria-hidden', 'false');
 
+            // Activate focus trap after drawer is visible
+            if (focusTrapCleanup) focusTrapCleanup();
+            focusTrapCleanup = activateFocusTrap(drawer);
+
+            // Render content after flyTo completes so skeletons are visible
+            // for the full duration of the globe rotation animation
+            const recencyPriority = { breaking: 0, recent: 1, old: 2 };
+            const sortedStories = [...data.stories].sort((a, b) => {
+                const priorityA = recencyPriority[a.recency || 'old'];
+                const priorityB = recencyPriority[b.recency || 'old'];
+
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+
+                return new Date(b.published) - new Date(a.published);
+            });
+
+            // Country metadata summary — provides keyboard users with
+            // the same demographic context that mouse users see in the tooltip
+            const pop = data.population ? data.population.toLocaleString() : null;
+            const area = data.area_sq_km ? `${data.area_sq_km.toLocaleString()} km²` : null;
+            const langs = data.languages && data.languages.length ? data.languages.join(', ') : null;
+            const volumeLevel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
+            const volumeColor = data.story_count >= 15 ? '#ef4444' : data.story_count >= 8 ? '#f59e0b' : '#22c55e';
+
+            const metaItems = [
+                pop ? `<span>Pop: ${pop}</span>` : '',
+                area ? `<span>Area: ${area}</span>` : '',
+                langs ? `<span>Languages: ${langs}</span>` : ''
+            ].filter(Boolean).join('<span class="country-meta-sep" aria-hidden="true"> · </span>');
+
+            const countrySummaryHTML = `
+                <div class="drawer-country-summary" role="region" aria-label="Country information">
+                    <div class="country-meta-row">${metaItems}</div>
+                    <div class="country-volume-row">
+                        <span>${data.story_count} stories</span>
+                        <span class="volume-badge" style="background:${volumeColor};">${volumeLevel}</span>
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = countrySummaryHTML + sortedStories.map((story, index) => {
+                const recency = story.recency || 'old';
+                const recencyBadge = getRecencyBadge(recency);
+                const animationDelay = index * 0.08;
+                const domain = extractDomain(story.link);
+                const readingTime = calculateReadingTime(story.summary);
+                const absoluteDate = formatAbsoluteDate(story.published);
+                const cleanSummary = story.summary.replace(/<[^>]*>?/gm, '').trim();
+
+                return `
+                    <article class="drawer-card" data-recency="${recency}" style="animation-delay: ${animationDelay}s">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <a href="${story.link}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   aria-label="Read full article on ${story.source} (opens in new tab)">
+                                    ${story.title}
+                                    <span class="external-icon" aria-hidden="true">↗</span>
+                                </a>
+                            </h3>
+                            ${recencyBadge}
+                        </div>
+                        <div class="meta">
+                            <span class="meta-source" title="Source: ${domain}">
+                                <span class="source-icon" aria-hidden="true">📰</span>
+                                ${story.source}
+                            </span>
+                            <span class="meta-domain">${domain}</span>
+                            <span class="meta-time" title="${absoluteDate}">
+                                <time datetime="${story.published}">${formatRelativeTime(story.published)}</time>
+                            </span>
+                            <span class="meta-read-time" title="Estimated reading time">
+                                <span aria-hidden="true">📖</span>
+                                ${readingTime}
+                            </span>
+                        </div>
+                        <div class="card-summary">
+                            <p class="summary-text">${cleanSummary.substring(0, 180)}...</p>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+
+            content.querySelectorAll('.drawer-card').forEach(card => {
+                card.classList.add('card-entrance');
+            });
+
+            const volLabel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
+            announce(`Showing ${data.story_count} news stories from ${data.name}. Volume: ${volLabel}.`);
+
             setTimeout(() => {
                 closeBtn.focus();
             }, 100);
-        });
-
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                const recencyPriority = { breaking: 0, recent: 1, old: 2 };
-                const sortedStories = [...data.stories].sort((a, b) => {
-                    const priorityA = recencyPriority[a.recency || 'old'];
-                    const priorityB = recencyPriority[b.recency || 'old'];
-
-                    if (priorityA !== priorityB) {
-                        return priorityA - priorityB;
-                    }
-
-                    return new Date(b.published) - new Date(a.published);
-                });
-
-                content.innerHTML = sortedStories.map((story, index) => {
-                    const recency = story.recency || 'old';
-                    const recencyBadge = getRecencyBadge(recency);
-                    const animationDelay = index * 0.08;
-                    const domain = extractDomain(story.link);
-                    const readingTime = calculateReadingTime(story.summary);
-                    const absoluteDate = formatAbsoluteDate(story.published);
-                    const cleanSummary = story.summary.replace(/<[^>]*>?/gm, '').trim();
-
-                    return `
-                        <article class="drawer-card" data-recency="${recency}" style="animation-delay: ${animationDelay}s">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <a href="${story.link}"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       aria-label="Read full article on ${story.source} (opens in new tab)">
-                                        ${story.title}
-                                        <span class="external-icon" aria-hidden="true">↗</span>
-                                    </a>
-                                </h3>
-                                ${recencyBadge}
-                            </div>
-                            <div class="meta">
-                                <span class="meta-source" title="Source: ${domain}">
-                                    <span class="source-icon" aria-hidden="true">📰</span>
-                                    ${story.source}
-                                </span>
-                                <span class="meta-domain">${domain}</span>
-                                <span class="meta-time" title="${absoluteDate}">
-                                    <time datetime="${story.published}">${formatRelativeTime(story.published)}</time>
-                                </span>
-                                <span class="meta-read-time" title="Estimated reading time">
-                                    <span aria-hidden="true">📖</span>
-                                    ${readingTime}
-                                </span>
-                            </div>
-                            <div class="card-summary">
-                                <p class="summary-text">${cleanSummary.substring(0, 180)}...</p>
-                            </div>
-                        </article>
-                    `;
-                }).join('');
-
-                content.querySelectorAll('.drawer-card').forEach(card => {
-                    card.classList.add('card-entrance');
-                });
-
-                announce(`Showing ${data.story_count} news stories from ${data.name}`);
-            }, 150);
         });
     }
 
@@ -970,6 +1062,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         drawer.classList.remove('active');
         backdrop.classList.remove('active');
         drawer.setAttribute('aria-hidden', 'true');
+
+        // Release focus trap
+        if (focusTrapCleanup) {
+            focusTrapCleanup();
+            focusTrapCleanup = null;
+        }
 
         if (flyToTimer) {
             flyToTimer.stop();

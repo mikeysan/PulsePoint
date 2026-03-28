@@ -188,10 +188,10 @@ class TestGlobeE2E:
         response = client.get('/globe')
         soup = BeautifulSoup(response.data, 'html.parser')
 
-        # Check for "Back to Grid View" link
-        back_link = soup.find('a', href='/')
+        # Check for "Grid View" navigation link
+        back_link = soup.find('a', href='/feed')
         assert back_link is not None
-        assert 'Back to Grid View' in back_link.text or 'grid' in back_link.text.lower()
+        assert 'grid' in back_link.text.lower()
 
 
 @pytest.mark.usefixtures("client")
