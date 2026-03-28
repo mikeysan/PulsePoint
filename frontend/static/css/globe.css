@@ -4,7 +4,6 @@
     --drawer-width: 400px;
     --accent-pulse: #3b82f6;
     --text-primary: #f8fafc;
-    --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --focus-ring: #3b82f6;
 }
@@ -385,6 +384,43 @@ body {
     cursor: grabbing;
 }
 
+/* --- Globe Navigation --- */
+.globe-nav {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 10;
+    font-family: 'Inter', sans-serif;
+}
+
+.globe-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+}
+
+.globe-nav-link:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.globe-nav-link:focus {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
 /* --- Beacons (D3 SVG Elements) --- */
 .location-marker {
     fill: var(--accent-pulse);
@@ -530,6 +566,52 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem;
+}
+
+/* --- Country Summary in Drawer --- */
+.drawer-country-summary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.country-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.country-meta-sep {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.country-volume-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.volume-badge {
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* --- News Cards in Drawer --- */
@@ -865,8 +947,8 @@ body {
 
 .keyboard-help-button {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 60px;
+    left: 20px;
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -1055,5 +1137,44 @@ kbd {
 
     .shortcut-item {
         flex-wrap: wrap;
+    }
+}
+
+/* ========================================
+   Reduced Motion Preferences (WCAG 2.3.3)
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .location-pulse {
+        animation: none;
+    }
+
+    .recency-badge.breaking {
+        animation: none;
+    }
+
+    .loading-spinner {
+        animation: none;
+    }
+
+    .drawer-card.skeleton .skeleton-title,
+    .drawer-card.skeleton .skeleton-meta,
+    .drawer-card.skeleton .skeleton-text {
+        animation: none;
+    }
+
+    .drawer-card.card-entrance {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    .keyboard-help-overlay,
+    .keyboard-help-button,
+    .drawer-close,
+    .location-marker,
+    .drawer-card,
+    .side-drawer {
+        transition: none;
     }
 }

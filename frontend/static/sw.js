@@ -1,7 +1,11 @@
-const CACHE_NAME = 'pulsepoint-v1';
+const CACHE_NAME = 'pulsepoint-v2';
 const ASSETS_TO_CACHE = [
     '/',
     '/static/css/style.min.css',
+    '/static/css/globe.css',
+    '/static/js/globe.js',
+    'https://d3js.org/d3.v7.min.js',
+    'https://unpkg.com/topojson@3',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js'
 ];
@@ -35,7 +39,10 @@ self.addEventListener('activate', event => {
 // Fetch event - serve from cache, fall back to network
 self.addEventListener('fetch', event => {
     // Skip cross-origin requests (like RSS feeds) for now to avoid opaque response issues
-    if (!event.request.url.startsWith(self.location.origin) && !event.request.url.includes('cdn.jsdelivr.net')) {
+    if (!event.request.url.startsWith(self.location.origin)
+        && !event.request.url.includes('cdn.jsdelivr.net')
+        && !event.request.url.includes('d3js.org')
+        && !event.request.url.includes('unpkg.com')) {
         return;
     }
 
