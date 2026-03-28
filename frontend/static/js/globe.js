@@ -693,12 +693,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             helpOverlay.classList.remove('active');
             helpOverlay.setAttribute('aria-hidden', 'true');
             announce('Keyboard shortcuts help closed');
-            // Return focus to globe and ensure rotation resumes
+            // Return focus to globe
             container.focus();
-            // Explicitly resume rotation in case it was paused
-            setTimeout(() => {
-                isRotating = true;
-            }, 100);
+            // Trigger mouseleave event to resume rotation if mouse is still on globe
+            const mouseleaveEvent = new MouseEvent('mouseleave', { bubbles: true, cancelable: true });
+            container.node().dispatchEvent(mouseleaveEvent);
         }
     }
 
@@ -1098,10 +1097,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Return focus to globe
         container.focus();
 
-        // Explicitly resume rotation
-        setTimeout(() => {
-            isRotating = true;
-        }, 100);
+        // Trigger mouseleave event to resume rotation if mouse is still on globe
+        const mouseleaveEvent = new MouseEvent('mouseleave', { bubbles: true, cancelable: true });
+        container.node().dispatchEvent(mouseleaveEvent);
     };
 
     // Expose keyboard help function globally for HTML onclick handlers
