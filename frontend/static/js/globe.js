@@ -800,9 +800,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const volumeColor = data.story_count >= 15 ? '#ef4444' : data.story_count >= 8 ? '#f59e0b' : '#22c55e';
 
         tooltip
-            .style('opacity', 1)
-            .style('left', `${event.pageX}px`)
-            .style('top', `${event.pageY - 10}px`)
+            .style('opacity', 0)
             .html(`
                 <strong>${data.name}</strong><br/>
                 <div style="margin-top:4px; font-size:0.8em; line-height:1.4; color:#ccc;">
@@ -817,6 +815,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </span>
                 </div>
             `);
+
+        // Viewport edge detection: clamp tooltip position to stay fully visible
+        const node = tooltip.node();
+        const rect = node.getBoundingClientRect();
+        const margin = 8;
+        let left = event.pageX;
+        let top = event.pageY - 10;
+
+        // Clamp horizontal: prevent overflow on left or right
+        if (left + rect.width / 2 > window.innerWidth - margin) {
+            left = window.innerWidth - rect.width / 2 - margin;
+        }
+        if (left - rect.width / 2 < margin) {
+            left = rect.width / 2 + margin;
+        }
+
+        // Flip vertical: if tooltip would overflow top, show below cursor instead
+        if (top - rect.height < margin) {
+            top = event.pageY + rect.height + 10;
+        }
+
+        tooltip
+            .style('left', `${left}px`)
+            .style('top', `${top}px`)
+            .style('opacity', 1);
     }
 
     function hideTooltip() {
