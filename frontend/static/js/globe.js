@@ -870,6 +870,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Focus trap for modal drawer (ARIA Authoring Practices: Dialog Modal)
+    let focusTrapCleanup = null;
+
+    function activateFocusTrap(drawerEl) {
+        function handleKeydown(e) {
+            if (e.key !== 'Tab') return;
+
+            const focusable = drawerEl.querySelectorAll(
+                'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusable.length === 0) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+
+        drawerEl.addEventListener('keydown', handleKeydown);
+
+        // Return cleanup function
+        return () => drawerEl.removeEventListener('keydown', handleKeydown);
+    }
+
     function openDrawer(data) {
         const drawer = document.getElementById('sideDrawer');
         const backdrop = document.getElementById('drawerBackdrop');
@@ -897,6 +927,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             drawer.classList.add('active');
             backdrop.classList.add('active');
             drawer.setAttribute('aria-hidden', 'false');
+
+            // Activate focus trap after drawer is visible
+            if (focusTrapCleanup) focusTrapCleanup();
+            focusTrapCleanup = activateFocusTrap(drawer);
 
             setTimeout(() => {
                 closeBtn.focus();
@@ -977,6 +1011,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         drawer.classList.remove('active');
         backdrop.classList.remove('active');
         drawer.setAttribute('aria-hidden', 'true');
+
+        // Release focus trap
+        if (focusTrapCleanup) {
+            focusTrapCleanup();
+            focusTrapCleanup = null;
+        }
 
         if (flyToTimer) {
             flyToTimer.stop();
