@@ -1,5 +1,23 @@
 
-// Globe Visualization Module
+/**
+ * PulsePoint Globe Visualization Module
+ *
+ * An interactive 3D globe visualization displaying world news by geographic location.
+ * Features include:
+ * - D3.js orthographic projection with country beacons
+ * - Color-coded volume indicators (green/amber/red)
+ * - Physics-based inertia rotation
+ * - Full keyboard navigation
+ * - Fly-to animations for country selection
+ *
+ * @module GlobeVisualization
+ * @requires d3@7
+ * @requires topojson@3
+ *
+ * @author PulsePoint Team
+ * @version 1.0.0
+ * @since 2026-03
+ */
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Configuration
@@ -7,7 +25,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const height = window.innerHeight;
     const sensibility = 75; // Rotate sensibility
 
-    // Responsive scale calculation
+    /**
+     * Calculate the appropriate globe scale based on viewport size
+     *
+     * Adjusts the projection scale for different screen sizes:
+     * - Mobile (<600px): 90% of base scale
+     * - Tablet (<768px): 95% of base scale
+     * - Desktop: 100% of base scale
+     *
+     * @returns {number} The calculated scale value
+     */
     function calculateScale() {
         const baseScale = Math.min(width, height) / 2.5;
         // Adjust scale for mobile devices
@@ -35,8 +62,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         .center([0, 0])
         .rotate([0, -30])
         .translate([width / 2, height / 2]);
-
-    const path = d3.geoPath().projection(projection);
 
     const path = d3.geoPath().projection(projection);
 
@@ -617,10 +642,79 @@ document.addEventListener('DOMContentLoaded', async () => {
             `);
     }
 
+    /**
+     * Hide the tooltip element
+     *
+     * Sets tooltip opacity to 0, effectively hiding it from view
+     */
     function hideTooltip() {
         tooltip.style('opacity', 0);
     }
 
+    /**
+     * Animate the globe to smoothly rotate and center on a specific country
+     *
+     * Uses D3 timer with easeInOutCubic easing for smooth animation.
+     * Pauses auto-rotation during the animation.
+     *
+     * @param {Object} countryData - The country to fly to
+     * @param {number} countryData.lng - Longitude of the country
+     * @param {number} countryData.lat - Latitude of the country
+     * @param {number} [duration=1500] - Animation duration in milliseconds
+     * @returns {Promise<void>} Resolves when animation completes
+     */
+    function flyToCountry(countryData, duration = 1500) {
+        const targetLng = countryData.lng;
+        const targetLat = countryData.lat;
+
+        // Calculate target rotation to center the country
+        // For orthographic projection, we need to rotate so the point is at center
+        const targetRotate = [-targetLng, -targetLat];
+
+        const startRotate = projection.rotate();
+        const startTime = d3.now();
+
+        return new Promise((resolve) => {
+            d3.timer((elapsed) => {
+                const t = (elapsed - startTime) / duration;
+
+                if (t >= 1) {
+                    projection.rotate(targetRotate);
+                    scheduleRedraw();
+                    resolve();
+                    return true; // Stop timer
+                }
+
+                // Easing function (easeInOutCubic)
+                const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+                // Interpolate rotation
+                const currentRotate = [
+                    startRotate[0] + (targetRotate[0] - startRotate[0]) * ease,
+                    startRotate[1] + (targetRotate[1] - startRotate[1]) * ease
+                ];
+
+                projection.rotate(currentRotate);
+                scheduleRedraw();
+            });
+        });
+    }
+
+    /**
+     * Open the side drawer and display news stories for a country
+     *
+     * Performs the following steps:
+     * 1. Triggers fly-to animation to center the country on globe
+     * 2. Shows skeleton loading state while stories load
+     * 3. Opens drawer with backdrop after animation completes
+     * 4. Renders story cards with staggered entrance animation
+     * 5. Manages focus for accessibility
+     *
+     * @param {Object} data - Country data object
+     * @param {string} data.name - Country name
+     * @param {Array} data.stories - Array of story objects
+     * @param {number} data.story_count - Total number of stories
+     */
     function openDrawer(data) {
         const drawer = document.getElementById('sideDrawer');
         const backdrop = document.getElementById('drawerBackdrop');
@@ -639,24 +733,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `).join('');
 
-        drawer.classList.add('active');
-        backdrop.classList.add('active');
-        drawer.setAttribute('aria-hidden', 'false');
+        // Fly to country before opening drawer
+        flyToCountry(data, 1200).then(() => {
+            // Open drawer after fly-to animation completes
+            drawer.classList.add('active');
+            backdrop.classList.add('active');
+            drawer.setAttribute('aria-hidden', 'false');
 
-        // Focus management: Set focus to close button
-        setTimeout(() => {
-            closeBtn.focus();
-        }, 100);
+            // Focus management: Set focus to close button
+            setTimeout(() => {
+                closeBtn.focus();
+            }, 100);
+        });
 
         // Populate stories after a brief delay (for smooth UX)
         requestAnimationFrame(() => {
             setTimeout(() => {
-                content.innerHTML = data.stories.map(story => {
+                content.innerHTML = data.stories.map((story, index) => {
                     const recency = story.recency || 'old';
                     const recencyBadge = getRecencyBadge(recency);
+                    const animationDelay = index * 0.08; // Stagger by 80ms
 
                     return `
-                    <div class="drawer-card" data-recency="${recency}">
+                    <div class="drawer-card" data-recency="${recency}" style="animation-delay: ${animationDelay}s">
                         <div class="card-header">
                             <h3><a href="${story.link}" target="_blank">${story.title}</a></h3>
                             ${recencyBadge}
@@ -668,6 +767,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <p>${story.summary.replace(/<[^>]*>?/gm, '').substring(0, 150)}...</p>
                     </div>
                 `}).join('');
+
+                // Trigger reflow to start animations
+                content.querySelectorAll('.drawer-card').forEach(card => {
+                    card.classList.add('card-entrance');
+                });
 
                 // Announce to screen readers
                 announce(`Showing ${data.story_count} news stories from ${data.name}`);

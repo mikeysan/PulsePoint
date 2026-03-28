@@ -391,13 +391,14 @@ body {
     fill-opacity: 0.6;
     stroke: #fff;
     stroke-width: 1px;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
 }
 
 .location-marker:hover {
     fill-opacity: 1;
     stroke-width: 2px;
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
 }
 
 .location-pulse {
@@ -538,7 +539,25 @@ body {
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 1rem;
-    transition: all 0.2s;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Card entrance animation */
+.drawer-card.card-entrance {
+    animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cardEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .drawer-card:hover {
@@ -577,10 +596,13 @@ body {
 .drawer-card h3 a {
     color: var(--text-primary);
     text-decoration: none;
+    transition: color 0.2s ease, transform 0.2s ease;
+    display: inline-block;
 }
 
 .drawer-card h3 a:hover {
     color: var(--accent-pulse);
+    transform: translateX(2px);
 }
 
 .drawer-card .meta {
