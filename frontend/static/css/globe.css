@@ -532,6 +532,52 @@ body {
     padding: 1.5rem;
 }
 
+/* --- Country Summary in Drawer --- */
+.drawer-country-summary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.country-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.country-meta-sep {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.country-volume-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.volume-badge {
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 /* --- News Cards in Drawer --- */
 .drawer-card {
     background: rgba(255, 255, 255, 0.05);

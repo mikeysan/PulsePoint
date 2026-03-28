@@ -974,7 +974,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return new Date(b.published) - new Date(a.published);
                 });
 
-                content.innerHTML = sortedStories.map((story, index) => {
+                // Country metadata summary — provides keyboard users with
+                // the same demographic context that mouse users see in the tooltip
+                const pop = data.population ? data.population.toLocaleString() : null;
+                const area = data.area_sq_km ? `${data.area_sq_km.toLocaleString()} km²` : null;
+                const langs = data.languages && data.languages.length ? data.languages.join(', ') : null;
+                const volumeLevel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
+                const volumeColor = data.story_count >= 15 ? '#ef4444' : data.story_count >= 8 ? '#f59e0b' : '#22c55e';
+
+                const metaItems = [
+                    pop ? `<span>Pop: ${pop}</span>` : '',
+                    area ? `<span>Area: ${area}</span>` : '',
+                    langs ? `<span>Languages: ${langs}</span>` : ''
+                ].filter(Boolean).join('<span class="country-meta-sep" aria-hidden="true"> · </span>');
+
+                const countrySummaryHTML = `
+                    <div class="drawer-country-summary" role="region" aria-label="Country information">
+                        <div class="country-meta-row">${metaItems}</div>
+                        <div class="country-volume-row">
+                            <span>${data.story_count} stories</span>
+                            <span class="volume-badge" style="background:${volumeColor};">${volumeLevel}</span>
+                        </div>
+                    </div>
+                `;
+
+                content.innerHTML = countrySummaryHTML + sortedStories.map((story, index) => {
                     const recency = story.recency || 'old';
                     const recencyBadge = getRecencyBadge(recency);
                     const animationDelay = index * 0.08;
@@ -1022,7 +1046,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     card.classList.add('card-entrance');
                 });
 
-                announce(`Showing ${data.story_count} news stories from ${data.name}`);
+                const volLabel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
+                announce(`Showing ${data.story_count} news stories from ${data.name}. Volume: ${volLabel}.`);
             }, 150);
         });
     }
