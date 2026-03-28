@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     let globeMetadata = {};
     let isRotating = true;
     let rotationTimer;
+    let flyToTimer = null; // Track fly-to animation timer
+
+    // Performance optimization: Throttle redraws with requestAnimationFrame
+    let rafId = null;
+    let needsRedraw = false;
 
     // Selectors
     const container = d3.select('#globe-container');
@@ -255,8 +260,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             .data(beacons)
             .enter().append('g')
             .attr('class', 'marker-group')
-            .on('mouseenter', () => { isRotating = false; })
-            .on('mouseleave', () => { isRotating = true; });
+            .on('mouseenter', () => {
+                isRotating = false;
+            })
+            .on('mouseleave', () => {
+                isRotating = true;
+            });
 
         // Volume Bar (projected line)
         // Note: In 2D orthographic, lines are tricky. We simulate a "standing bar"
@@ -351,10 +360,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let dragVelocity = [0, 0];
     let skipFrame = false; // Skip first frame after drag to sync time
 
-    // Performance optimization: Throttle redraws with requestAnimationFrame
-    let rafId = null;
-    let needsRedraw = false;
-
     function scheduleRedraw() {
         if (!rafId && !needsRedraw) {
             needsRedraw = true;
@@ -374,6 +379,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             // While paused, still update lastTime to keep it synced
             lastTime = elapsed;
             return true; // Paused by hover
+        }
+
+        // DEBUG: Log rotation state periodically (every ~1 second)
+        if (elapsed % 1000 < 20) {
+            console.log(`[ROTATION TIMER] isRotating=true, velocity=[${velocity[0].toFixed(3)}, ${velocity[1].toFixed(3)}]`);
         }
 
         // Skip first frame after resuming to let time delta normalize
@@ -926,20 +936,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Reset velocity to prevent corruption from residual drag velocity
         velocity = [0, 0];
 
+        // Cancel any existing fly-to timer
+        if (flyToTimer) {
+            flyToTimer.stop();
+        }
+
         return new Promise((resolve) => {
-            d3.timer((elapsed) => {
+            flyToTimer = d3.timer((elapsed) => {
                 const t = elapsed / duration; // elapsed starts at 0 for this timer
 
                 if (t >= 1) {
                     projection.rotate(targetRotate);
                     scheduleRedraw();
 
-                    // CRITICAL: Restore rotation state after animation completes
-                    isRotating = true;
-                    // Reset velocity to auto-spin target
-                    velocity = [0.1, 0];
-                    skipFrame = true; // Skip first frame to normalize time delta
-
+                    // CRITICAL: Stop the timer explicitly
+                    // Rotation state is now managed by MutationObserver watching drawer class
+                    // The fly-to animation only pauses rotation at start, never resumes it
+                    flyToTimer.stop();
+                    flyToTimer = null;
                     resolve();
                     return true; // Stop timer
                 }
@@ -1094,13 +1108,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         backdrop.classList.remove('active');
         drawer.setAttribute('aria-hidden', 'true');
 
-        // Return focus to globe
-        container.focus();
+        // Cancel any running fly-to timer to prevent state interference
+        if (flyToTimer) {
+            flyToTimer.stop();
+            flyToTimer = null;
+        }
 
-        // Explicitly resume rotation
-        isRotating = true;
-        skipFrame = true;
+        // Return focus to globe container
+        const globeContainer = document.getElementById('globe-container');
+        if (globeContainer) {
+            globeContainer.focus();
+        }
+
+        // NOTE: Rotation will be resumed by MutationObserver when drawer loses 'active' class
     };
+
+    // Set up MutationObserver to resume rotation when drawer closes
+    // This is more reliable than setting isRotating in closeDrawer() because:
+    // 1. It observes ACTUAL state (DOM), not function execution
+    // 2. It works regardless of HOW drawer was closed (click, Escape, X, programmatic)
+    // 3. It's decoupled from the closeDrawer function
+    const drawerElement = document.getElementById('sideDrawer');
+    if (drawerElement) {
+        const drawerObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const isDrawerOpen = drawerElement.classList.contains('active');
+
+                    // If drawer just closed and rotation is paused, resume it
+                    if (!isDrawerOpen && !isRotating) {
+                        console.log('[Drawer closed] Resuming globe rotation');
+                        isRotating = true;
+                        skipFrame = true;
+                    }
+                }
+            });
+        });
+
+        // Start observing the drawer for attribute changes
+        drawerObserver.observe(drawerElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    }
 
     // Expose keyboard help function globally for HTML onclick handlers
     window.closeKeyboardHelp = closeKeyboardHelp;
