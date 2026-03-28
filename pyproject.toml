@@ -21,7 +21,7 @@ dependencies = [
     "charset-normalizer==3.4.3",
     "click==8.3.0",
     "coverage==7.10.7",
-    "cryptography==46.0.2",
+    "cryptography==46.0.6",
     "dparse==0.6.4",
     "feedparser==6.0.11",
     "filelock==3.20.3",
