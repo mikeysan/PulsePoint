@@ -268,19 +268,49 @@ document.addEventListener('DOMContentLoaded', async () => {
             return '#22c55e';
         };
 
+        const getHoverColor = (count) => {
+            const base = getColor(count);
+            if (base === '#ef4444') return '#f87171';
+            if (base === '#f59e0b') return '#fbbf24';
+            return '#4ade80';
+        };
+
         const markerGroups = gBeacons.selectAll('g.marker-group')
             .data(beacons)
             .enter()
             .append('g')
             .attr('class', 'marker-group')
-            .on('mouseenter', () => {
+            .on('mouseenter', (event, d) => {
                 pauseState.hover = true;
                 syncRotationState();
+                showTooltip(event, d.properties);
+                const cap = d3.select(event.currentTarget).select('.volume-cap');
+                cap.attr('fill', getHoverColor(d.properties.story_count));
             })
-            .on('mouseleave', () => {
+            .on('mouseleave', (event, d) => {
                 pauseState.hover = false;
                 syncRotationState();
+                hideTooltip();
+                const cap = d3.select(event.currentTarget).select('.volume-cap');
+                cap.attr('fill', getColor(d.properties.story_count));
+            })
+            .on('click', (_, d) => {
+                // Clicking a beacon may leave hover stuck if the drawer/backdrop takes over.
+                // Clear hover explicitly, then pause through flyTo/drawer state instead.
+                pauseState.hover = false;
+                velocity = [0, 0];
+                hideTooltip();
+                syncRotationState();
+                openDrawer(d.properties);
             });
+
+        // Invisible hit-area circle for accessible 44px minimum target size
+        markerGroups.append('circle')
+            .attr('class', 'hit-area')
+            .attr('cy', d => -Math.min(d.properties.story_count * 2, 60))
+            .attr('r', 22)
+            .attr('fill', 'transparent')
+            .attr('cursor', 'pointer');
 
         markerGroups.append('circle')
             .attr('r', 4)
@@ -304,30 +334,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .attr('fill', d => getColor(d.properties.story_count))
             .attr('stroke', '#fff')
             .attr('stroke-width', 1)
-            .attr('cursor', 'pointer')
-            .on('mouseover', (event, d) => {
-                showTooltip(event, d.properties);
-                const baseColor = getColor(d.properties.story_count);
-                const hoverColor = baseColor === '#ef4444'
-                    ? '#f87171'
-                    : baseColor === '#f59e0b'
-                        ? '#fbbf24'
-                        : '#4ade80';
-                d3.select(event.currentTarget).attr('fill', hoverColor);
-            })
-            .on('mouseout', (event, d) => {
-                hideTooltip();
-                d3.select(event.currentTarget).attr('fill', getColor(d.properties.story_count));
-            })
-            .on('click', (_, d) => {
-                // Clicking a beacon may leave hover stuck if the drawer/backdrop takes over.
-                // Clear hover explicitly, then pause through flyTo/drawer state instead.
-                pauseState.hover = false;
-                velocity = [0, 0];
-                hideTooltip();
-                syncRotationState();
-                openDrawer(d.properties);
-            });
+            .attr('cursor', 'pointer');
 
         markerGroups.filter(d => d.properties.story_count > 5)
             .append('circle')
