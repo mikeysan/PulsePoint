@@ -50,7 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let globeData = {};
     let globeMetadata = {};
     let isRotating = true;
-    let rotationTimer;
     let flyToTimer = null; // Track fly-to animation timer
 
     // Performance optimization: Throttle redraws with requestAnimationFrame
@@ -264,7 +263,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 isRotating = false;
             })
             .on('mouseleave', () => {
-                isRotating = true;
+                // Only resume rotation if drawer is not open
+                const drawer = document.getElementById('sideDrawer');
+                const isDrawerOpen = drawer && drawer.classList.contains('active');
+                if (!isDrawerOpen) {
+                    isRotating = true;
+                }
             });
 
         // Volume Bar (projected line)
@@ -316,7 +320,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 hideTooltip();
                 d3.select(event.currentTarget).attr('fill', getColor(d.properties.story_count));
             })
-            .on('click', (event, d) => {
+            .on('click', (_, d) => {
+                // Immediately stop rotation on beacon click
+                isRotating = false;
+                velocity = [0, 0];
                 openDrawer(d.properties);
             });
 
@@ -379,11 +386,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             // While paused, still update lastTime to keep it synced
             lastTime = elapsed;
             return true; // Paused by hover
-        }
-
-        // DEBUG: Log rotation state periodically (every ~1 second)
-        if (elapsed % 1000 < 20) {
-            console.log(`[ROTATION TIMER] isRotating=true, velocity=[${velocity[0].toFixed(3)}, ${velocity[1].toFixed(3)}]`);
         }
 
         // Skip first frame after resuming to let time delta normalize
@@ -457,7 +459,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.call(drag);
 
     // Keyboard Navigation for Accessibility
-    let focusedCountryIndex = -1;
     let visibleCountries = [];
 
     // Announcer for screen readers
@@ -1165,11 +1166,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Zoom Support (Optional)
+    // Disabled for now to prioritize rotation
+    /*
     const zoom = d3.zoom()
         .scaleExtent([200, 1000])
         .on('zoom', (event) => {
             projection.scale(event.transform.k);
             redraw();
         });
-    // container.call(zoom); // Disabled for now to prioritize rotation
+    // container.call(zoom);
+    */
 });
