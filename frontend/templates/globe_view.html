@@ -4,21 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PulsePoint - World View</title>
-    
+
     <!-- PulsePoint Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/globe.css') }}">
-    
+
     <!-- D3.js -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
 </head>
 <body>
 
+    <!-- Skip to content link for accessibility -->
+    <a href="#globe-container" class="skip-link">Skip to globe</a>
+
     <!-- Logo Overlay -->
-    <div id="globe-logo-container">
+    <div id="globe-logo-container" role="banner">
         <img src="{{ url_for('static', filename='logo.png') }}" alt="PulsePoint Logo" width="50" height="50">
         <div class="brand-text">
             <h1>PulsePoint</h1>
@@ -27,29 +30,73 @@
     </div>
 
     <!-- Main Container -->
-    <div id="globe-container"></div>
+    <div
+        id="globe-container"
+        role="application"
+        aria-label="Interactive 3D globe showing world news by country"
+        tabindex="0"
+        aria-describedby="globe-instructions">
+
+        <!-- Loading State -->
+        <div id="globe-loading" class="globe-loading">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Loading world news...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="globe-error" class="globe-error" style="display: none;">
+            <div class="error-icon">⚠️</div>
+            <h2>Unable to Load News</h2>
+            <p>We couldn't fetch the latest news. Please check your connection and try again.</p>
+            <button id="retry-button" class="retry-button">Retry</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="globe-toast" class="globe-toast" role="alert" aria-live="assertive"></div>
+
+    <!-- Keyboard instructions for screen readers -->
+    <div id="globe-instructions" class="visually-hidden">
+        Use arrow keys to rotate the globe. Press Enter or Space to select a country and view its news stories.
+    </div>
+
+    <!-- Live region for screen reader announcements -->
+    <div id="globe-announcer" aria-live="polite" aria-atomic="true" class="visually-hidden"></div>
 
     <!-- Tooltip -->
-    <div id="globe-tooltip" class="globe-tooltip"></div>
+    <div id="globe-tooltip" class="globe-tooltip" role="tooltip" aria-hidden="true"></div>
 
     <!-- Slide-over Drawer -->
-    <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
-    <div id="sideDrawer" class="side-drawer">
+    <div
+        id="drawerBackdrop"
+        class="drawer-backdrop"
+        onclick="closeDrawer()"
+        aria-hidden="true"></div>
+    <div
+        id="sideDrawer"
+        class="side-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="drawerTitle"
+        aria-hidden="true">
         <header class="drawer-header">
             <h2 id="drawerTitle" class="drawer-title">Country Name</h2>
-            <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+            <button
+                class="drawer-close"
+                onclick="closeDrawer()"
+                aria-label="Close news drawer">&times;</button>
         </header>
-        <div id="drawerContent" class="drawer-content">
+        <div id="drawerContent" class="drawer-content" role="region" aria-live="polite">
             <!-- Stories injected here -->
         </div>
     </div>
 
     <!-- Controls / Navigation -->
-    <div style="position: fixed; bottom: 20px; left: 20px; z-index: 10; font-family: 'Inter', sans-serif;">
+    <nav style="position: fixed; bottom: 20px; left: 20px; z-index: 10; font-family: 'Inter', sans-serif;" aria-label="Globe navigation">
         <a href="{{ url_for('main.index') }}" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem;">
             &larr; Back to Grid View
         </a>
-    </div>
+    </nav>
 
     <!-- Logic -->
     <script src="{{ url_for('static', filename='js/globe.js') }}"></script>

@@ -7,6 +7,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const height = window.innerHeight;
     const sensibility = 75; // Rotate sensibility
 
+    // Responsive scale calculation
+    function calculateScale() {
+        const baseScale = Math.min(width, height) / 2.5;
+        // Adjust scale for mobile devices
+        if (width < 600) {
+            return baseScale * 0.9; // Slightly smaller on mobile
+        } else if (width < 768) {
+            return baseScale * 0.95; // Slightly smaller on tablet
+        }
+        return baseScale;
+    }
+
     // State
     let globeData = {};
     let isRotating = true;
@@ -18,10 +30,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. Setup D3 Projection & Path
     const projection = d3.geoOrthographic()
-        .scale(height / 2.5)
+        .scale(calculateScale())
         .center([0, 0])
         .rotate([0, -30])
         .translate([width / 2, height / 2]);
+
+    const path = d3.geoPath().projection(projection);
 
     const path = d3.geoPath().projection(projection);
 
@@ -72,14 +86,86 @@ document.addEventListener('DOMContentLoaded', async () => {
         .attr('class', 'terminator')
         .style('pointer-events', 'none');
 
-    // 2. Load Data (World GeoJSON + API Data)
-    try {
-        const [worldData, apiResponse] = await Promise.all([
-            d3.json('https://unpkg.com/world-atlas@2.0.2/countries-110m.json'),
-            d3.json('/api/globe-data')
-        ]);
+    // Handle window resize for responsive design
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            // Update projection scale based on new viewport size
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+            const newScale = calculateScale();
 
-        globeData = apiResponse;
+            projection
+                .scale(newScale)
+                .translate([newWidth / 2, newHeight / 2]);
+
+            // Update terminator circle size
+            d3.select('.terminator')
+                .attr('cx', newWidth / 2)
+                .attr('cy', newHeight / 2)
+                .attr('r', newScale);
+
+            scheduleRedraw();
+        }, 250); // Debounce resize events
+    });
+
+    // 2. Load Data (World GeoJSON + API Data)
+    async function loadGlobeData() {
+        const loadingEl = document.getElementById('globe-loading');
+        const errorEl = document.getElementById('globe-error');
+
+        try {
+            // Show loading state
+            if (loadingEl) loadingEl.style.display = 'flex';
+            if (errorEl) errorEl.style.display = 'none';
+
+            const [worldData, apiResponse] = await Promise.all([
+                d3.json('https://unpkg.com/world-atlas@2.0.2/countries-110m.json'),
+                d3.json('/api/globe-data')
+            ]);
+
+            // Hide loading state
+            if (loadingEl) loadingEl.style.display = 'none';
+
+            // Validate API response
+            if (!apiResponse || Object.keys(apiResponse).length === 0) {
+                throw new Error('No news data available');
+            }
+
+            globeData = apiResponse;
+            showToast('News loaded successfully', 'success');
+
+            return { worldData, apiResponse };
+
+        } catch (error) {
+            console.error('Failed to load globe data:', error);
+
+            // Show error state
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (errorEl) errorEl.style.display = 'block';
+
+            showToast('Failed to load news. Please try again.', 'error');
+            announce('Error loading news data. Please check your connection.');
+
+            // Set up retry button
+            const retryBtn = document.getElementById('retry-button');
+            if (retryBtn) {
+                retryBtn.onclick = async () => {
+                    retryBtn.disabled = true;
+                    retryBtn.textContent = 'Retrying...';
+                    await loadGlobeData();
+                    retryBtn.disabled = false;
+                    retryBtn.textContent = 'Retry';
+                };
+            }
+
+            throw error;
+        }
+    }
+
+    try {
+        const { worldData } = await loadGlobeData();
 
         // Render Land
         const countries = topojson.feature(worldData, worldData.objects.countries);
@@ -103,8 +189,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Render Beacons from backend data
         renderBeacons();
 
-        // Initial Draw
-        redraw();
+        // Initial Draw (scheduled via RAF for optimal timing)
+        scheduleRedraw();
 
         // (Rotation handled by new Inertia Timer below)
 
@@ -184,10 +270,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function redraw() {
+        // Performance optimization: Cache center calculation
+        const center = projection.invert([width / 2, height / 2]);
+
         // Update paths
         gGlobe.selectAll('path').attr('d', path);
 
-        // Update beacons positions
+        // Update beacons positions with cached calculations
         gBeacons.selectAll('.marker-group')
             .attr('transform', d => {
                 const coords = projection(d.geometry.coordinates);
@@ -198,8 +287,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return `translate(${coords[0]}, ${coords[1]})`;
             })
             .style('display', d => {
-                // Check if point is visible
-                const center = projection.invert([width / 2, height / 2]);
+                // Check if point is visible (using cached center)
                 const d_geo = d.geometry.coordinates;
                 const distance = d3.geoDistance(d_geo, center);
                 return distance > 1.57 ? 'none' : 'block';
@@ -211,13 +299,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lastTime = d3.now();
     let dragVelocity = [0, 0];
 
-    // Timer for continuous animation loop
-    d3.timer(() => {
-        const now = d3.now();
-        const dt = now - lastTime;
-        lastTime = now;
+    // Performance optimization: Throttle redraws with requestAnimationFrame
+    let rafId = null;
+    let needsRedraw = false;
 
-        if (!isRotating) return; // Paused by hover
+    function scheduleRedraw() {
+        if (!rafId && !needsRedraw) {
+            needsRedraw = true;
+            rafId = requestAnimationFrame(() => {
+                if (needsRedraw) {
+                    redraw();
+                    needsRedraw = false;
+                }
+                rafId = null;
+            });
+        }
+    }
+
+    // Timer for continuous animation loop
+    d3.timer((elapsed) => {
+        if (!isRotating) return true; // Paused by hover
+
+        const dt = elapsed - lastTime;
+        lastTime = elapsed;
 
         // Apply rotation based on current velocity
         const rotate = projection.rotate();
@@ -242,7 +346,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (Math.abs(velocity[0] - targetVelocity[0]) < 0.001) velocity[0] = targetVelocity[0];
         if (Math.abs(velocity[1] - targetVelocity[1]) < 0.001) velocity[1] = targetVelocity[1];
 
-        redraw();
+        scheduleRedraw();
     });
 
     // Drag Interaction with Inertia
@@ -265,7 +369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Simple exponential smoothing
             dragVelocity = [event.dx * k, -event.dy * k];
 
-            redraw();
+            scheduleRedraw();
         })
         .on('end', () => {
             // Apply drag throw velocity
@@ -278,6 +382,119 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
     container.call(drag);
+
+    // Keyboard Navigation for Accessibility
+    let focusedCountryIndex = -1;
+    let visibleCountries = [];
+
+    // Announcer for screen readers
+    function announce(message) {
+        const announcer = document.getElementById('globe-announcer');
+        if (announcer) {
+            announcer.textContent = message;
+        }
+    }
+
+    // Toast notification system
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('globe-toast');
+        if (!toast) return;
+
+        toast.textContent = message;
+        toast.className = `globe-toast ${type} show`;
+
+        // Auto-hide after 4 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 4000);
+    }
+
+    // Update visible countries list for keyboard navigation
+    function updateVisibleCountries() {
+        const center = projection.invert([width / 2, height / 2]);
+        visibleCountries = Object.values(globeData).filter(country => {
+            const distance = d3.geoDistance([country.lng, country.lat], center);
+            return distance <= 1.57; // Only visible countries
+        }).sort((a, b) => {
+            // Sort by story count (highest first)
+            return b.story_count - a.story_count;
+        });
+    }
+
+    // Keyboard event handler
+    container.on('keydown', (event) => {
+        const rotateSpeed = 2; // Degrees per keypress
+
+        switch(event.key) {
+            case 'ArrowLeft':
+                event.preventDefault();
+                const rotateLeft = projection.rotate();
+                projection.rotate([rotateLeft[0] - rotateSpeed, rotateLeft[1]]);
+                updateVisibleCountries();
+                scheduleRedraw();
+                break;
+
+            case 'ArrowRight':
+                event.preventDefault();
+                const rotateRight = projection.rotate();
+                projection.rotate([rotateRight[0] + rotateSpeed, rotateRight[1]]);
+                updateVisibleCountries();
+                scheduleRedraw();
+                break;
+
+            case 'ArrowUp':
+                event.preventDefault();
+                const rotateUp = projection.rotate();
+                projection.rotate([rotateUp[0], Math.max(rotateUp[1] - rotateSpeed, -90)]);
+                updateVisibleCountries();
+                scheduleRedraw();
+                break;
+
+            case 'ArrowDown':
+                event.preventDefault();
+                const rotateDown = projection.rotate();
+                projection.rotate([rotateDown[0], Math.min(rotateDown[1] + rotateSpeed, 90)]);
+                updateVisibleCountries();
+                scheduleRedraw();
+                break;
+
+            case 'Enter':
+            case ' ':
+                event.preventDefault();
+                // Select the country with most stories currently visible
+                updateVisibleCountries();
+                if (visibleCountries.length > 0) {
+                    const country = visibleCountries[0]; // Highest story count
+                    announce(`Opening ${country.name} news with ${country.story_count} stories`);
+                    openDrawer(country);
+                } else {
+                    announce('No countries visible. Use arrow keys to rotate the globe.');
+                }
+                break;
+
+            case 'Escape':
+                event.preventDefault();
+                // Close drawer if open
+                const drawer = document.getElementById('sideDrawer');
+                if (drawer && drawer.classList.contains('active')) {
+                    closeDrawer();
+                    announce('News drawer closed');
+                    container.focus(); // Return focus to globe
+                }
+                break;
+
+            default:
+                // Let other keys pass through
+                return;
+        }
+    });
+
+    // Update visible countries when globe rotates
+    const originalRedraw = redraw;
+    redraw = function() {
+        originalRedraw();
+        updateVisibleCountries();
+    };
 
 
     // 4. UI Interactions (Tooltip & Drawer)
@@ -312,29 +529,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         const backdrop = document.getElementById('drawerBackdrop');
         const title = document.getElementById('drawerTitle');
         const content = document.getElementById('drawerContent');
+        const closeBtn = drawer.querySelector('.drawer-close');
 
         title.textContent = `${data.name} News`;
 
-        // Populate Stories
-        content.innerHTML = data.stories.map(story => `
-            <div class="drawer-card">
-                <h3><a href="${story.link}" target="_blank">${story.title}</a></h3>
-                <div class="meta">
-                    <span>${story.source}</span>
-                    <span>${new Date(story.published).toLocaleDateString()}</span>
-                </div>
-                <p>${story.summary.replace(/<[^>]*>?/gm, '').substring(0, 150)}...</p>
+        // Show skeleton loading state first
+        content.innerHTML = Array(3).fill(0).map(() => `
+            <div class="drawer-card skeleton">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-meta"></div>
+                <div class="skeleton-text"></div>
             </div>
         `).join('');
 
         drawer.classList.add('active');
         backdrop.classList.add('active');
+        drawer.setAttribute('aria-hidden', 'false');
+
+        // Focus management: Set focus to close button
+        setTimeout(() => {
+            closeBtn.focus();
+        }, 100);
+
+        // Populate stories after a brief delay (for smooth UX)
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                content.innerHTML = data.stories.map(story => `
+                    <div class="drawer-card">
+                        <h3><a href="${story.link}" target="_blank">${story.title}</a></h3>
+                        <div class="meta">
+                            <span>${story.source}</span>
+                            <span>${new Date(story.published).toLocaleDateString()}</span>
+                        </div>
+                        <p>${story.summary.replace(/<[^>]*>?/gm, '').substring(0, 150)}...</p>
+                    </div>
+                `).join('');
+
+                // Announce to screen readers
+                announce(`Showing ${data.story_count} news stories from ${data.name}`);
+            }, 150);
+        });
     }
 
     // Close Drawer Logic
     window.closeDrawer = function () {
-        document.getElementById('sideDrawer').classList.remove('active');
-        document.getElementById('drawerBackdrop').classList.remove('active');
+        const drawer = document.getElementById('sideDrawer');
+        const backdrop = document.getElementById('drawerBackdrop');
+
+        drawer.classList.remove('active');
+        backdrop.classList.remove('active');
+        drawer.setAttribute('aria-hidden', 'true');
+
+        // Return focus to globe
+        container.focus();
     };
 
     // Zoom Support (Optional)
