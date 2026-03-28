@@ -8,7 +8,9 @@ The PulsePoint Globe is an interactive 3D visualization that displays world news
 
 ### Accessing the Globe
 
-Navigate to: `https://your-domain.com/globe`
+The globe is the default landing page. Navigate to: `https://your-domain.com/`
+
+For direct access, you can also use: `https://your-domain.com/globe`
 
 The globe will automatically load and begin slowly rotating, displaying news beacons for countries with available stories.
 
@@ -108,7 +110,7 @@ Each story in the drawer displays:
 - Click the × button in the drawer header
 - Click the backdrop (darkened area behind the drawer)
 - Press `Escape` on your keyboard
-- Click "Back to Grid View" to return to the traditional news layout
+- Click "Grid View" to return to the traditional RSS news feed layout
 
 ---
 

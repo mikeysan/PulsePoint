@@ -26,6 +26,18 @@ def globe_view():
 @cache.cached(timeout=300)  # Cache for 5 minutes (configurable via CACHE_PAGE_TIMEOUT)
 def index():
     """
+    Render the 3D Globe visualization as the default landing page.
+
+    Returns:
+        HTML: Rendered globe template
+    """
+    return render_template('globe_view.html')
+
+
+@main_bp.route('/feed')
+@cache.cached(timeout=300)  # Cache for 5 minutes (configurable via CACHE_PAGE_TIMEOUT)
+def news_feed():
+    """
     Render the main news feed page.
 
     Returns:
