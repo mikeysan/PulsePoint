@@ -97,7 +97,7 @@
         "lat": 6.5244,
         "lng": 3.3792,
         "region_name": "Lagos",
-        "active": true
+        "active": false
     },
     {
         "name": "Premium Times",
@@ -250,7 +250,7 @@
         "lat": 33.6844,
         "lng": 73.0479,
         "region_name": "Islamabad",
-        "active": true
+        "active": false
     },
     {
         "name": "The Straits Times",
@@ -277,7 +277,7 @@
         "lat": 14.5995,
         "lng": 120.9842,
         "region_name": "Manila",
-        "active": true
+        "active": false
     },
     {
         "name": "The Daily Star",
@@ -286,7 +286,7 @@
         "lat": 23.8103,
         "lng": 90.4125,
         "region_name": "Dhaka",
-        "active": true
+        "active": false
     },
     {
         "name": "Dhaka Tribune",
@@ -295,7 +295,7 @@
         "lat": 23.8103,
         "lng": 90.4125,
         "region_name": "Dhaka",
-        "active": true
+        "active": false
     },
     {
         "name": "Daily Mirror",
@@ -304,7 +304,7 @@
         "lat": 6.9271,
         "lng": 79.8612,
         "region_name": "Colombo",
-        "active": true
+        "active": false
     },
     {
         "name": "The Island",
@@ -322,7 +322,7 @@
         "lat": 24.4539,
         "lng": 54.3773,
         "region_name": "Abu Dhabi",
-        "active": true
+        "active": false
     },
     {
         "name": "Khaleej Times",
@@ -331,7 +331,7 @@
         "lat": 24.4539,
         "lng": 54.3773,
         "region_name": "Abu Dhabi",
-        "active": true
+        "active": false
     },
     {
         "name": "Korea Herald",
@@ -340,7 +340,7 @@
         "lat": 37.5665,
         "lng": 126.9780,
         "region_name": "Seoul",
-        "active": true
+        "active": false
     },
     {
         "name": "Jerusalem Post",
