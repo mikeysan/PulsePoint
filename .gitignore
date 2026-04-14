@@ -221,6 +221,7 @@ SERVER_SECURITY_SETUP.md
 .claude/
 .shared/
 .github/
+.crush/
 # Verify Venv
 backend/venv_verify/
 
