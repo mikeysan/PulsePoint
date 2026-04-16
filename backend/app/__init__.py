@@ -49,7 +49,7 @@ def create_app(config_name=None):
             strict_transport_security=True,
             content_security_policy={
                 'default-src': ["'self'", 'https://cdn.jsdelivr.net'],
-                'style-src': ["'self'", 'https://cdn.jsdelivr.net', "'unsafe-inline'"],
+                'style-src': ["'self'", 'https://cdn.jsdelivr.net'],
                 'script-src': ["'self'", 'https://cdn.jsdelivr.net'],
             },
         )

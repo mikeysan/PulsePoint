@@ -75,7 +75,7 @@ def news_feed():
 
     except Exception as e:
         current_app.logger.error(f"Error fetching news: {str(e)}")
-        return render_template('index.html', articles=[], error=str(e))
+        return render_template('index.html', articles=[], error='Failed to load news feed. Please try again later.')
 
 
 @main_bp.route('/api/news')
@@ -118,7 +118,7 @@ def get_news():
 
     except Exception as e:
         current_app.logger.error(f"API Error: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Failed to fetch news articles.'}), 500
 
 
 @main_bp.route('/api/health')
@@ -152,7 +152,7 @@ def get_globe_data_api():
         return jsonify(data)
     except Exception as e:
         current_app.logger.error(f"Globe API Error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Failed to load globe data.'}), 500
 
 
 @main_bp.route('/api/performance')
@@ -214,7 +214,7 @@ def performance_monitoring():
         current_app.logger.error(f"Performance monitoring error: {str(e)}")
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Failed to retrieve performance metrics.',
             'service': 'PulsePoint Performance Monitor'
         }), 500
 
@@ -247,7 +247,7 @@ def record_core_web_vitals():
 
     except Exception as e:
         current_app.logger.error(f"Error recording Core Web Vitals: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Failed to record metrics.'}), 500
 
 
 @main_bp.route('/manifest.json')

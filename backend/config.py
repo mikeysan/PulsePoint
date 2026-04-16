@@ -70,6 +70,17 @@ class ProductionConfig(Config):
     TALISMAN_FORCE_HTTPS = True
     CACHE_TYPE = "RedisCache"
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def validate(cls):
+        if cls.SECRET_KEY == Config.SECRET_KEY and not os.getenv("SECRET_KEY"):
+            raise RuntimeError(
+                "SECRET_KEY must be set via environment variable in production. "
+                "Add it to your .env file or set the SECRET_KEY env var."
+            )
+
 
 class TestingConfig(Config):
     """Testing environment configuration."""
@@ -82,12 +93,15 @@ config = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
     "testing": TestingConfig,
-    "default": DevelopmentConfig,
+    "default": ProductionConfig,
 }
 
 
 def get_config(env=None):
     """Get configuration based on environment."""
     if env is None:
-        env = os.getenv("FLASK_ENV", "development")
-    return config.get(env, config["default"])
+        env = os.getenv("FLASK_ENV", "production")
+    config_class = config.get(env, config["default"])
+    if env == "production" and hasattr(config_class, 'validate'):
+        config_class.validate()
+    return config_class

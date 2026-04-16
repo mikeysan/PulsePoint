@@ -819,6 +819,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         return minutes < 1 ? '< 1 min read' : `${minutes} min read`;
     }
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
     function extractDomain(url) {
         if (!url) return 'unknown';
 
@@ -1082,20 +1089,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const recency = story.recency || 'old';
                 const recencyBadge = getRecencyBadge(recency);
                 const animationDelay = index * 0.08;
-                const domain = extractDomain(story.link);
+                const domain = escapeHtml(extractDomain(story.link));
                 const readingTime = calculateReadingTime(story.summary);
-                const absoluteDate = formatAbsoluteDate(story.published);
-                const cleanSummary = story.summary.replace(/<[^>]*>?/gm, '').trim();
+                const absoluteDate = escapeHtml(formatAbsoluteDate(story.published));
+                const cleanSummary = escapeHtml(story.summary.replace(/<[^>]*>?/gm, '').trim());
 
                 return `
                     <article class="drawer-card" data-recency="${recency}" style="animation-delay: ${animationDelay}s">
                         <div class="card-header">
                             <h3 class="card-title">
-                                <a href="${story.link}"
+                                <a href="${escapeHtml(story.link)}"
                                    target="_blank"
                                    rel="noopener noreferrer"
-                                   aria-label="Read full article on ${story.source} (opens in new tab)">
-                                    ${story.title}
+                                   aria-label="Read full article on ${escapeHtml(story.source)} (opens in new tab)">
+                                    ${escapeHtml(story.title)}
                                     <span class="external-icon" aria-hidden="true">↗</span>
                                 </a>
                             </h3>
@@ -1104,11 +1111,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="meta">
                             <span class="meta-source" title="Source: ${domain}">
                                 <span class="source-icon" aria-hidden="true">📰</span>
-                                ${story.source}
+                                ${escapeHtml(story.source)}
                             </span>
                             <span class="meta-domain">${domain}</span>
                             <span class="meta-time" title="${absoluteDate}">
-                                <time datetime="${story.published}">${formatRelativeTime(story.published)}</time>
+                                <time datetime="${escapeHtml(story.published)}">${formatRelativeTime(story.published)}</time>
                             </span>
                             <span class="meta-read-time" title="Estimated reading time">
                                 <span aria-hidden="true">📖</span>

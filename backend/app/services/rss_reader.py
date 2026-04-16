@@ -22,12 +22,8 @@ logger = logging.getLogger(__name__)
 class RSSReader:
     """Asynchronous RSS feed reader."""
 
-    # Define a standard User-Agent to avoid being blocked by servers (Fixing 403 errors)
-    USER_AGENT = (
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-        'AppleWebKit/537.36 (KHTML, like Gecko) '
-        'Chrome/91.0.4472.124 Safari/537.36'
-    )
+    # Identify as an RSS reader rather than spoofing a browser User-Agent
+    USER_AGENT = 'PulsePoint/0.1 (RSS Reader; +https://github.com/mikeysan/PulsePoint)'
 
     def __init__(self, timeout=10, max_articles=10):
         """
