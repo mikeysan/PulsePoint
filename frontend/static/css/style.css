@@ -702,3 +702,41 @@ select:focus,
 .chip-action:hover {
     color: var(--color-accent-hover);
 }
+
+/* Bookmark Icon */
+.bookmark-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    border-radius: 50%;
+    transition: var(--transition);
+    color: var(--color-text-muted);
+}
+
+.bookmark-btn:hover {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+.bookmark-btn svg {
+    width: 18px;
+    height: 18px;
+    transition: var(--transition-fast);
+}
+
+.bookmark-btn.saved {
+    color: var(--color-accent);
+}
+
+.bookmark-btn.saved svg {
+    fill: var(--color-accent);
+}
