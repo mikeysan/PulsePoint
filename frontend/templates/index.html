@@ -320,6 +320,98 @@
                 }
             });
         });
+
+        (function () {
+            var pulling = false;
+            var startY = 0;
+            var pullEl = document.createElement('div');
+            pullEl.style.cssText = 'text-align:center;padding:0.5rem;font-size:0.8rem;color:var(--color-text-muted);display:none;';
+            pullEl.textContent = '\u2193 Pull to refresh';
+            var searchContainer = document.querySelector('.search-container');
+            searchContainer.parentNode.insertBefore(pullEl, searchContainer);
+
+            document.addEventListener('touchstart', function (e) {
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+
+            document.addEventListener('touchmove', function (e) {
+                if (window.scrollY === 0) {
+                    var pull = e.touches[0].clientY - startY;
+                    if (pull > 30) {
+                        pullEl.style.display = 'block';
+                        pulling = true;
+                    }
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchend', function () {
+                if (pulling && window.scrollY === 0) {
+                    var lastTouch = null;
+                    var touchEndHandler = function (e) { lastTouch = e.changedTouches[0]; };
+                    document.addEventListener('touchend', touchEndHandler, { once: true });
+                    setTimeout(function () {
+                        if (lastTouch && (lastTouch.clientY - startY) > 60) {
+                            pullEl.textContent = 'Refreshing...';
+                            location.reload();
+                        } else {
+                            pullEl.style.display = 'none';
+                        }
+                    }, 50);
+                }
+                pulling = false;
+            });
+        });
+
+            var urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('view') === 'saved') {
+                var saved = PulsePointBookmarks ? PulsePointBookmarks.getAll() : [];
+                var savedLinks = saved.map(function (a) { return a.link; });
+
+                articleItems.forEach(function (item) {
+                    item.style.display = 'none';
+                });
+                articleItems.forEach(function (item) {
+                    var cards = item.querySelectorAll('.bookmark-btn');
+                    if (cards.length > 0) {
+                        var link = cards[0].getAttribute('data-link');
+                        if (savedLinks.indexOf(link) >= 0) {
+                            item.style.display = '';
+                        }
+                    }
+                });
+
+                articleCount.textContent = 'Saved articles';
+                document.getElementById('searchInput').style.display = 'none';
+                document.querySelector('.search-wrapper').style.display = 'none';
+                document.querySelector('.search-meta').style.display = 'none';
+                document.getElementById('sourceChips').style.display = 'none';
+
+                if (saved.length === 0) {
+                    document.getElementById('noResults').style.display = 'flex';
+                    document.getElementById('noResults').querySelector('h3').textContent = 'No saved articles';
+                    document.getElementById('noResults').querySelector('p').textContent = 'Click the bookmark icon on any article to save it for later.';
+                    document.getElementById('noResults').querySelector('button').style.display = 'none';
+                }
+
+                var unsaveAllBtn = document.createElement('button');
+                unsaveAllBtn.className = 'chip-action';
+                unsaveAllBtn.textContent = 'Unsave All';
+                unsaveAllBtn.style.marginBottom = '1rem';
+                unsaveAllBtn.addEventListener('click', function () {
+                    PulsePointBookmarks.removeAll();
+                    location.reload();
+                });
+                var searchContainer = document.querySelector('.search-container');
+                searchContainer.appendChild(unsaveAllBtn);
+
+                var backBtn = document.createElement('a');
+                backBtn.href = '/feed';
+                backBtn.className = 'chip-action';
+                backBtn.textContent = '\u2190 Back to feed';
+                backBtn.style.marginBottom = '1rem';
+                backBtn.style.marginLeft = '0.5rem';
+                searchContainer.appendChild(backBtn);
+            }
     });
 
     // Auto-refresh every 5 minutes
