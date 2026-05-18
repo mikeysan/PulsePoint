@@ -48,7 +48,7 @@
     <div class="row g-4" id="articlesGrid">
         {% for article in articles %}
         <div class="col-12 col-md-6 col-lg-4 article-item" data-title="{{ article.title|lower }}"
-            data-summary="{{ article.summary|striptags|lower }}">
+            data-summary="{{ article.summary|striptags|lower }}" data-source="{{ article.source }}">
             <article class="news-card fade-in" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
                 <div class="news-card-header">
                     <span class="news-source">{{ article.source }}</span>
