@@ -8,6 +8,83 @@
     --focus-ring: #3b82f6;
 }
 
+[data-theme="light"] body {
+    --globe-bg: #f8fafc;
+}
+
+[data-theme="light"] #globe-timestamp {
+    background: rgba(255, 255, 255, 0.8);
+    color: #334155;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .globe-timestamp:hover {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1a202c;
+}
+
+[data-theme="light"] .side-drawer {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="light"] .drawer-title {
+    color: #1a202c;
+}
+
+[data-theme="light"] .drawer-close {
+    color: #64748b;
+}
+
+[data-theme="light"] .drawer-close:hover {
+    color: #1a202c;
+}
+
+[data-theme="light"] .drawer-card {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .drawer-card:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .drawer-card h3 a {
+    color: #1a202c;
+}
+
+[data-theme="light"] .drawer-card p,
+[data-theme="light"] .summary-text {
+    color: #475569;
+}
+
+[data-theme="light"] .meta-source {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .volume-legend {
+    background: rgba(255, 255, 255, 0.9);
+    color: #1a202c;
+}
+
+[data-theme="light"] .volume-legend h4 {
+    color: #1a202c;
+}
+
+[data-theme="light"] .globe-nav-link {
+    color: #334155;
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .globe-nav-link:hover {
+    color: #1a202c;
+    background: rgba(255, 255, 255, 1);
+}
+
+[data-theme="light"] .drawer-card .meta {
+    color: #64748b;
+}
+
 /* --- Accessibility Utilities --- */
 .visually-hidden {
     position: absolute;
