@@ -202,12 +202,8 @@
 
         renderChips();
 
-        function applyAllFilters(query) {
-            filterArticles(query);
-        }
-
         // Filter articles based on search query and source state
-        function filterArticles(query) {
+        function applyAllFilters(query) {
             var searchTerm = query.toLowerCase().trim();
             var visibleCount = 0;
 
