@@ -772,12 +772,44 @@ body {
     margin-bottom: 0.75rem;
 }
 
-.drawer-card p {
-    font-size: 0.9rem;
-    color: #cbd5e1;
-    line-height: 1.5;
-    margin: 0;
-}
+    .drawer-card p {
+        font-size: 0.9rem;
+        color: #cbd5e1;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .drawer-bookmark {
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+        margin-left: 0.5rem;
+    }
+
+    .drawer-bookmark:hover {
+        color: var(--accent-pulse);
+        background: rgba(59, 130, 246, 0.15);
+    }
+
+    .drawer-bookmark.saved {
+        color: var(--accent-pulse);
+    }
+
+    [data-theme="light"] .drawer-bookmark {
+        color: #64748b;
+    }
+
+    [data-theme="light"] .drawer-bookmark.saved {
+        color: #3b82f6;
+    }
 
 /* --- Recency Badges --- */
 .recency-badge {

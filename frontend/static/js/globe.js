@@ -1050,6 +1050,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Render content after flyTo completes so skeletons are visible
             // for the full duration of the globe rotation animation
             const recencyPriority = { breaking: 0, recent: 1, old: 2 };
+            function buildBookmarkButton(story) {
+                var isBookmarked = window.PulsePointBookmarks && window.PulsePointBookmarks.isSaved(story.link);
+                return '<button class="bookmark-btn drawer-bookmark' + (isBookmarked ? ' saved' : '') + '" data-link="' + escapeHtml(story.link) + '" data-title="' + escapeHtml(story.title) + '" data-source="' + escapeHtml(story.source) + '" data-summary="' + escapeHtml(story.summary || '') + '" aria-label="' + (isBookmarked ? 'Remove from saved' : 'Save article') + '" title="Save for later"><svg xmlns="http://www.w3.org/2000/svg" fill="' + (isBookmarked ? 'currentColor' : 'none') + '" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg></button>';
+            }
+
             const sortedStories = [...data.stories].sort((a, b) => {
                 const priorityA = recencyPriority[a.recency || 'old'];
                 const priorityB = recencyPriority[b.recency || 'old'];
@@ -1106,6 +1111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <span class="external-icon" aria-hidden="true">↗</span>
                                 </a>
                             </h3>
+                            ${buildBookmarkButton(story)}
                             ${recencyBadge}
                         </div>
                         <div class="meta">
@@ -1131,6 +1137,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             content.querySelectorAll('.drawer-card').forEach(card => {
                 card.classList.add('card-entrance');
+            });
+
+            content.querySelectorAll('.drawer-bookmark').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    var article = {
+                        title: btn.getAttribute('data-title'),
+                        link: btn.getAttribute('data-link'),
+                        source: btn.getAttribute('data-source'),
+                        summary: btn.getAttribute('data-summary')
+                    };
+                    var saved = window.PulsePointBookmarks.toggle(article);
+                    if (saved) {
+                        btn.classList.add('saved');
+                        btn.setAttribute('aria-label', 'Remove from saved');
+                        btn.querySelector('svg').setAttribute('fill', 'currentColor');
+                    } else {
+                        btn.classList.remove('saved');
+                        btn.setAttribute('aria-label', 'Save article');
+                        btn.querySelector('svg').setAttribute('fill', 'none');
+                    }
+                });
             });
 
             const volLabel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';
