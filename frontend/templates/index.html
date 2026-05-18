@@ -124,16 +124,18 @@
         }
     }
 
+    var articleItems, articleCount, noResults, articlesGrid, totalArticles;
+
     // Search/Filter functionality
     function initializeSearch() {
         const searchInput = document.getElementById('searchInput');
         const clearButton = document.getElementById('clearSearch');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
-        const articleCount = document.getElementById('articleCount');
-        const noResults = document.getElementById('noResults');
-        const articlesGrid = document.getElementById('articlesGrid');
-        const articleItems = document.querySelectorAll('.article-item');
-        const totalArticles = articleItems.length;
+        articleCount = document.getElementById('articleCount');
+        noResults = document.getElementById('noResults');
+        articlesGrid = document.getElementById('articlesGrid');
+        articleItems = document.querySelectorAll('.article-item');
+        totalArticles = articleItems.length;
 
         // Debounce function to limit search execution frequency
         function debounce(func, wait) {
@@ -321,6 +323,57 @@
             });
         });
 
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('view') === 'saved') {
+            var saved = PulsePointBookmarks ? PulsePointBookmarks.getAll() : [];
+            var savedLinks = saved.map(function (a) { return a.link; });
+
+            articleItems.forEach(function (item) {
+                item.style.display = 'none';
+            });
+            articleItems.forEach(function (item) {
+                var cards = item.querySelectorAll('.bookmark-btn');
+                if (cards.length > 0) {
+                    var link = cards[0].getAttribute('data-link');
+                    if (savedLinks.indexOf(link) >= 0) {
+                        item.style.display = '';
+                    }
+                }
+            });
+
+            articleCount.textContent = 'Saved articles';
+            document.getElementById('searchInput').style.display = 'none';
+            document.querySelector('.search-wrapper').style.display = 'none';
+            document.querySelector('.search-meta').style.display = 'none';
+            document.getElementById('sourceChips').style.display = 'none';
+
+            if (saved.length === 0) {
+                document.getElementById('noResults').style.display = 'flex';
+                document.getElementById('noResults').querySelector('h3').textContent = 'No saved articles';
+                document.getElementById('noResults').querySelector('p').textContent = 'Click the bookmark icon on any article to save it for later.';
+                document.getElementById('noResults').querySelector('button').style.display = 'none';
+            }
+
+            var unsaveAllBtn = document.createElement('button');
+            unsaveAllBtn.className = 'chip-action';
+            unsaveAllBtn.textContent = 'Unsave All';
+            unsaveAllBtn.style.marginBottom = '1rem';
+            unsaveAllBtn.addEventListener('click', function () {
+                PulsePointBookmarks.removeAll();
+                location.reload();
+            });
+            var searchContainer = document.querySelector('.search-container');
+            searchContainer.appendChild(unsaveAllBtn);
+
+            var backBtn = document.createElement('a');
+            backBtn.href = '/feed';
+            backBtn.className = 'chip-action';
+            backBtn.textContent = '\u2190 Back to feed';
+            backBtn.style.marginBottom = '1rem';
+            backBtn.style.marginLeft = '0.5rem';
+            searchContainer.appendChild(backBtn);
+        }
+
         (function () {
             var pulling = false;
             var startY = 0;
@@ -361,57 +414,6 @@
                 pulling = false;
             });
         });
-
-            var urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('view') === 'saved') {
-                var saved = PulsePointBookmarks ? PulsePointBookmarks.getAll() : [];
-                var savedLinks = saved.map(function (a) { return a.link; });
-
-                articleItems.forEach(function (item) {
-                    item.style.display = 'none';
-                });
-                articleItems.forEach(function (item) {
-                    var cards = item.querySelectorAll('.bookmark-btn');
-                    if (cards.length > 0) {
-                        var link = cards[0].getAttribute('data-link');
-                        if (savedLinks.indexOf(link) >= 0) {
-                            item.style.display = '';
-                        }
-                    }
-                });
-
-                articleCount.textContent = 'Saved articles';
-                document.getElementById('searchInput').style.display = 'none';
-                document.querySelector('.search-wrapper').style.display = 'none';
-                document.querySelector('.search-meta').style.display = 'none';
-                document.getElementById('sourceChips').style.display = 'none';
-
-                if (saved.length === 0) {
-                    document.getElementById('noResults').style.display = 'flex';
-                    document.getElementById('noResults').querySelector('h3').textContent = 'No saved articles';
-                    document.getElementById('noResults').querySelector('p').textContent = 'Click the bookmark icon on any article to save it for later.';
-                    document.getElementById('noResults').querySelector('button').style.display = 'none';
-                }
-
-                var unsaveAllBtn = document.createElement('button');
-                unsaveAllBtn.className = 'chip-action';
-                unsaveAllBtn.textContent = 'Unsave All';
-                unsaveAllBtn.style.marginBottom = '1rem';
-                unsaveAllBtn.addEventListener('click', function () {
-                    PulsePointBookmarks.removeAll();
-                    location.reload();
-                });
-                var searchContainer = document.querySelector('.search-container');
-                searchContainer.appendChild(unsaveAllBtn);
-
-                var backBtn = document.createElement('a');
-                backBtn.href = '/feed';
-                backBtn.className = 'chip-action';
-                backBtn.textContent = '\u2190 Back to feed';
-                backBtn.style.marginBottom = '1rem';
-                backBtn.style.marginLeft = '0.5rem';
-                searchContainer.appendChild(backBtn);
-            }
     });
 
     // Auto-refresh every 5 minutes
