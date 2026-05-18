@@ -34,6 +34,15 @@
         </div>
     </div>
 
+    <div class="source-chips-container" id="sourceChips">
+        <span style="font-size:0.75rem; color:var(--color-text-muted); font-weight:500; margin-right:0.25rem;">Sources:</span>
+        <!-- Chips injected by JS -->
+        <span class="chip-actions">
+            <button class="chip-action" id="selectAllSources">All</button>
+            <button class="chip-action" id="clearAllSources">None</button>
+        </span>
+    </div>
+
     <!-- No Results Message (hidden by default) -->
     <div id="noResults" class="no-results" style="display: none;">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -129,19 +138,86 @@
             };
         }
 
-        // Filter articles based on search query
+        var sourceChipsEl = document.getElementById('sourceChips');
+        var allSources = [];
+        var sourceState = {};
+
+        articleItems.forEach(function (item) {
+            var s = item.getAttribute('data-source');
+            if (s && allSources.indexOf(s) === -1) {
+                allSources.push(s);
+            }
+        });
+        allSources.sort();
+
+        var storedSources = localStorage.getItem('pulsepoint-sources');
+        if (storedSources) {
+            try {
+                sourceState = JSON.parse(storedSources);
+            } catch (e) {
+                sourceState = {};
+            }
+        }
+
+        function renderChips() {
+            var chipsHTML = '<span style="font-size:0.75rem; color:var(--color-text-muted); font-weight:500; margin-right:0.25rem;">Sources:</span>';
+            allSources.forEach(function (src) {
+                var enabled = sourceState[src] !== false;
+                chipsHTML += '<span class="source-chip ' + (enabled ? 'active' : 'inactive') + '" data-source="' + src + '">' + src + '</span>';
+            });
+            chipsHTML += '<span class="chip-actions"><button class="chip-action" id="selectAllSources">All</button><button class="chip-action" id="clearAllSources">None</button></span>';
+            sourceChipsEl.innerHTML = chipsHTML;
+
+            document.querySelectorAll('.source-chip').forEach(function (chip) {
+                chip.addEventListener('click', function () {
+                    var src = this.getAttribute('data-source');
+                    sourceState[src] = sourceState[src] === false;
+                    localStorage.setItem('pulsepoint-sources', JSON.stringify(sourceState));
+                    renderChips();
+                    applyAllFilters(searchInput.value);
+                });
+            });
+
+            document.getElementById('selectAllSources').addEventListener('click', function () {
+                allSources.forEach(function (s) { sourceState[s] = true; });
+                localStorage.setItem('pulsepoint-sources', JSON.stringify(sourceState));
+                renderChips();
+                applyAllFilters(searchInput.value);
+            });
+
+            document.getElementById('clearAllSources').addEventListener('click', function () {
+                allSources.forEach(function (s) { sourceState[s] = false; });
+                localStorage.setItem('pulsepoint-sources', JSON.stringify(sourceState));
+                renderChips();
+                applyAllFilters(searchInput.value);
+            });
+        }
+
+        function applySourceFilter(item) {
+            var src = item.getAttribute('data-source');
+            if (!src) return true;
+            if (Object.keys(sourceState).length === 0) return true;
+            return sourceState[src] !== false;
+        }
+
+        renderChips();
+
+        function applyAllFilters(query) {
+            filterArticles(query);
+        }
+
+        // Filter articles based on search query and source state
         function filterArticles(query) {
-            const searchTerm = query.toLowerCase().trim();
-            let visibleCount = 0;
+            var searchTerm = query.toLowerCase().trim();
+            var visibleCount = 0;
 
             articleItems.forEach(function (item) {
-                const title = item.getAttribute('data-title') || '';
-                const summary = item.getAttribute('data-summary') || '';
+                var title = item.getAttribute('data-title') || '';
+                var summary = item.getAttribute('data-summary') || '';
+                var matches = title.includes(searchTerm) || summary.includes(searchTerm);
+                var sourceOk = applySourceFilter(item);
 
-                // Check if search term is in title or summary
-                const matches = title.includes(searchTerm) || summary.includes(searchTerm);
-
-                if (matches) {
+                if (matches && sourceOk) {
                     item.style.display = '';
                     visibleCount++;
                 } else {
@@ -149,15 +225,13 @@
                 }
             });
 
-            // Update article count
-            if (searchTerm) {
-                articleCount.textContent = `Showing ${visibleCount} of ${totalArticles} articles`;
+            if (searchTerm || Object.values(sourceState).some(function (v) { return v === false; })) {
+                articleCount.textContent = 'Showing ' + visibleCount + ' of ' + totalArticles + ' articles';
             } else {
-                articleCount.textContent = `Showing ${totalArticles} articles`;
+                articleCount.textContent = 'Showing ' + totalArticles + ' articles';
             }
 
-            // Show/hide "no results" message
-            if (visibleCount === 0 && searchTerm) {
+            if (visibleCount === 0 && (searchTerm || Object.values(sourceState).some(function (v) { return v === false; }))) {
                 noResults.style.display = 'flex';
                 articlesGrid.style.display = 'none';
             } else {
@@ -165,7 +239,6 @@
                 articlesGrid.style.display = '';
             }
 
-            // Show/hide clear button
             if (searchTerm) {
                 clearButton.style.display = 'flex';
             } else {
@@ -176,13 +249,13 @@
         // Clear search
         function clearSearch() {
             searchInput.value = '';
-            filterArticles('');
+            applyAllFilters('');
             searchInput.focus();
         }
 
         // Event listeners
         searchInput.addEventListener('input', debounce(function (e) {
-            filterArticles(e.target.value);
+            applyAllFilters(e.target.value);
         }, 300));
 
         clearButton.addEventListener('click', clearSearch);
@@ -191,7 +264,7 @@
         // Allow Enter key to trigger search immediately (bypass debounce)
         searchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
-                filterArticles(e.target.value);
+                applyAllFilters(e.target.value);
             }
         });
     }
