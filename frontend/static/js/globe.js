@@ -170,35 +170,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Dynamic terminator group (rendered after water, before land)
     const gTerminator = gGlobe.append('g').attr('class', 'terminator-group');
 
-    // Light source direction in 3D (sun at ~30° lon, 0° lat)
+    // Light source direction in 3D (sun at 0° lon, -60° lat)
     const lightSource = [0.5, 0, -0.866];
 
+    // Precompute static geographic coordinates of the light source
+    const lightLng = Math.atan2(lightSource[1], lightSource[0]) * 180 / Math.PI;
+    const lightLat = Math.asin(lightSource[2]) * 180 / Math.PI;
+    const antipodeLng = lightLng + 180;
+    const antipodeLat = -lightLat;
+
+    // Pre-create the terminator generator (radius=90 gives a great circle)
+    const terminatorGen = d3.geoCircle().radius(90);
+
     function updateTerminator() {
-        const rotate = projection.rotate();
-        const lambda = rotate[0];
-        const phi = rotate[1];
-
-        // Convert light source to geographic coordinates
-        const lightLng = Math.atan2(lightSource[1], lightSource[0]) * 180 / Math.PI;
-        const lightLat = Math.asin(lightSource[2]) * 180 / Math.PI;
-
-        // Antipode of light source = center of night side
-        const antipodeLng = lightLng + 180;
-        const antipodeLat = -lightLat;
+        const [lambda, phi] = projection.rotate();
 
         // Rotate antipode by current globe rotation to keep terminator fixed to light
         const rotatedAntipodeLng = antipodeLng - lambda;
         const rotatedAntipodeLat = antipodeLat - phi;
 
-        const terminatorCircle = d3.geoCircle()
-            .center([rotatedAntipodeLng, rotatedAntipodeLat])
-            .radius(90);
-
-        gTerminator.selectAll('path')
-            .data([{type: 'Sphere'}])
-            .join('path')
-            .attr('d', path)
-            .attr('fill', 'none');
+        const terminatorCircle = terminatorGen.center([rotatedAntipodeLng, rotatedAntipodeLat]);
 
         gTerminator.selectAll('.night-side')
             .data([terminatorCircle()])
@@ -282,11 +273,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             projection
                 .scale(newScale)
                 .translate([width / 2, height / 2]);
-
-            d3.select('.terminator')
-                .attr('cx', width / 2)
-                .attr('cy', height / 2)
-                .attr('r', newScale);
 
             scheduleRedraw();
         }, 250);
