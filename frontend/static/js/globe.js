@@ -170,6 +170,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Dynamic terminator group (rendered after water, before land)
     const gTerminator = gGlobe.append('g').attr('class', 'terminator-group');
 
+    // Atmosphere ring
+    const gAtmosphere = gGlobe.append('circle')
+        .attr('class', 'atmosphere-ring')
+        .attr('cx', width / 2)
+        .attr('cy', height / 2)
+        .attr('r', projection.scale())
+        .attr('fill', 'url(#atmosphereGradient)')
+        .attr('filter', 'url(#atmosphereBlur)')
+        .style('pointer-events', 'none');
+
     // Light source direction in 3D (sun at 0° lon, -60° lat)
     const lightSource = [0.5, 0, -0.866];
 
@@ -259,6 +269,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         .attr('stop-color', '#000')
         .attr('stop-opacity', '0');
 
+    // Atmosphere ring gradient
+    const atmosphereGradient = defs.append('radialGradient')
+        .attr('id', 'atmosphereGradient')
+        .attr('cx', '50%')
+        .attr('cy', '50%')
+        .attr('r', '50%');
+    atmosphereGradient.append('stop')
+        .attr('offset', '85%')
+        .attr('stop-color', '#3b82f6')
+        .attr('stop-opacity', '0');
+    atmosphereGradient.append('stop')
+        .attr('offset', '98%')
+        .attr('stop-color', '#3b82f6')
+        .attr('stop-opacity', '0.15');
+    atmosphereGradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', '#3b82f6')
+        .attr('stop-opacity', '0');
+
     // Resize
     let resizeTimeout;
     window.addEventListener('resize', () => {
@@ -273,6 +302,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             projection
                 .scale(newScale)
                 .translate([width / 2, height / 2]);
+
+            d3.select('.atmosphere-ring')
+                .attr('cx', width / 2)
+                .attr('cy', height / 2)
+                .attr('r', newScale);
 
             scheduleRedraw();
         }, 250);

@@ -457,6 +457,10 @@ body {
     z-index: -1;
 }
 
+.atmosphere-ring {
+    filter: url(#atmosphereBlur);
+}
+
 #globe-container:active {
     cursor: grabbing;
 }
