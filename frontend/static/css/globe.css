@@ -562,6 +562,7 @@ body {
     /* Increased blur */
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(59, 130, 246, 0.3);
     color: var(--text-primary);
     padding: 0.75rem 1rem;
     border-radius: 8px;
