@@ -167,6 +167,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         .attr('stroke', 'rgba(59, 130, 246, 0.3)')
         .attr('stroke-width', 1);
 
+    // Dynamic terminator group (rendered after water, before land)
+    const gTerminator = gGlobe.append('g').attr('class', 'terminator-group');
+
+    // Light source direction in 3D (sun at ~30° lon, 0° lat)
+    const lightSource = [0.5, 0, -0.866];
+
+    function updateTerminator() {
+        const rotate = projection.rotate();
+        const lambda = rotate[0];
+        const phi = rotate[1];
+
+        // Convert light source to geographic coordinates
+        const lightLng = Math.atan2(lightSource[1], lightSource[0]) * 180 / Math.PI;
+        const lightLat = Math.asin(lightSource[2]) * 180 / Math.PI;
+
+        // Antipode of light source = center of night side
+        const antipodeLng = lightLng + 180;
+        const antipodeLat = -lightLat;
+
+        // Rotate antipode by current globe rotation to keep terminator fixed to light
+        const rotatedAntipodeLng = antipodeLng - lambda;
+        const rotatedAntipodeLat = antipodeLat - phi;
+
+        const terminatorCircle = d3.geoCircle()
+            .center([rotatedAntipodeLng, rotatedAntipodeLat])
+            .radius(90);
+
+        gTerminator.selectAll('path')
+            .data([{type: 'Sphere'}])
+            .join('path')
+            .attr('d', path)
+            .attr('fill', 'none');
+
+        gTerminator.selectAll('.night-side')
+            .data([terminatorCircle()])
+            .join('path')
+            .attr('class', 'night-side')
+            .attr('d', path)
+            .attr('fill', 'url(#nightGradient)')
+            .style('pointer-events', 'none');
+    }
+
     // SVG filter definitions
     const defs = svg.append('defs');
 
@@ -206,6 +248,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         .attr('mode', 'multiply')
         .attr('in', 'texture')
         .attr('in2', 'SourceGraphic');
+
+    // Night side gradient: transparent at terminator edge, dark at center
+    const nightGradient = defs.append('radialGradient')
+        .attr('id', 'nightGradient')
+        .attr('cx', '50%')
+        .attr('cy', '50%')
+        .attr('r', '50%');
+    nightGradient.append('stop')
+        .attr('offset', '0%')
+        .attr('stop-color', '#000')
+        .attr('stop-opacity', '0.35');
+    nightGradient.append('stop')
+        .attr('offset', '85%')
+        .attr('stop-color', '#000')
+        .attr('stop-opacity', '0.05');
+    nightGradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', '#000')
+        .attr('stop-opacity', '0');
 
     // Resize
     let resizeTimeout;
@@ -430,6 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return distance > 1.57 ? 'none' : 'block';
             });
 
+        updateTerminator();
         updateVisibleCountries();
     }
 
