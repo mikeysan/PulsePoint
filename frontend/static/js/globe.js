@@ -308,6 +308,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .scale(newScale)
                 .translate([width / 2, height / 2]);
 
+            currentScale = newScale;
+            minScale = newScale;
+            maxScale = newScale * 3;
+
             d3.select('.atmosphere-ring')
                 .attr('cx', width / 2)
                 .attr('cy', height / 2)
@@ -591,6 +595,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
     container.call(drag);
+
+    // Zoom on scroll (disabled while drawer is open)
+    let currentScale = calculateScale();
+    let minScale = calculateScale();
+    let maxScale = calculateScale() * 3;
+
+    container.on('wheel.zoom', (event) => {
+        const drawer = document.getElementById('sideDrawer');
+        if (drawer && drawer.classList.contains('active')) return;
+
+        event.preventDefault();
+
+        const delta = -event.deltaY;
+        const zoomSensitivity = 0.05;
+        currentScale = Math.max(minScale, Math.min(maxScale,
+            currentScale + delta * currentScale * zoomSensitivity));
+
+        projection.scale(currentScale);
+
+        d3.select('.atmosphere-ring').attr('r', currentScale);
+
+        scheduleRedraw();
+    });
 
     // Keyboard navigation
     let visibleCountries = [];
