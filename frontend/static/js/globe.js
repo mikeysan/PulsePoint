@@ -155,7 +155,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Groups
     const gGlobe = svg.append('g').attr('class', 'globe-group');
-    const gLand = gGlobe.append('g').attr('class', 'land-group');
+    const gLand = gGlobe.append('g')
+        .attr('class', 'land-group')
+        .attr('filter', 'url(#landTexture)');
     const gBeacons = gGlobe.append('g').attr('class', 'beacon-group');
 
     // Water
