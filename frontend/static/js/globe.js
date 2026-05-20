@@ -549,8 +549,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 || Math.abs(velocity[1] - IDLE_VELOCITY[1]) > VELOCITY_THRESHOLD;
 
             if (hasDragMomentum) {
-                velocity[0] *= FRICTION;
-                velocity[1] *= FRICTION;
+                velocity[0] = IDLE_VELOCITY[0] + (velocity[0] - IDLE_VELOCITY[0]) * FRICTION;
+                velocity[1] = IDLE_VELOCITY[1] + (velocity[1] - IDLE_VELOCITY[1]) * FRICTION;
 
                 // Clamp to idle when below threshold
                 if (Math.abs(velocity[0] - IDLE_VELOCITY[0]) < VELOCITY_THRESHOLD
