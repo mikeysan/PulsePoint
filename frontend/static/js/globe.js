@@ -90,9 +90,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let isRotating = !prefersReducedMotion;
     let lastTime = 0;
-    let velocity = prefersReducedMotion ? [0, 0] : [0.1, 0];
+    const IDLE_VELOCITY = [0.06, 0];
+    let velocity = prefersReducedMotion ? [0, 0] : [...IDLE_VELOCITY];
     let dragVelocity = [0, 0];
     let skipFrame = false;
+    const FRICTION = 0.98;
+    const VELOCITY_THRESHOLD = 0.001;
 
     // Separate pause reasons
     const pauseState = {
@@ -539,13 +542,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             rotate[1] + velocity[1] * (dt / 16)
         ]);
 
-        const targetVelocity = [0.1, 0];
+        // Apply friction to post-drag velocity
+        const isDragging = pauseState.drag;
+        if (!isDragging) {
+            const hasDragMomentum = Math.abs(velocity[0] - IDLE_VELOCITY[0]) > VELOCITY_THRESHOLD
+                || Math.abs(velocity[1] - IDLE_VELOCITY[1]) > VELOCITY_THRESHOLD;
 
-        velocity[0] = velocity[0] * 0.95 + targetVelocity[0] * 0.05;
-        velocity[1] = velocity[1] * 0.95 + targetVelocity[1] * 0.05;
+            if (hasDragMomentum) {
+                velocity[0] *= FRICTION;
+                velocity[1] *= FRICTION;
 
-        if (Math.abs(velocity[0] - targetVelocity[0]) < 0.001) velocity[0] = targetVelocity[0];
-        if (Math.abs(velocity[1] - targetVelocity[1]) < 0.001) velocity[1] = targetVelocity[1];
+                // Clamp to idle when below threshold
+                if (Math.abs(velocity[0] - IDLE_VELOCITY[0]) < VELOCITY_THRESHOLD
+                    && Math.abs(velocity[1] - IDLE_VELOCITY[1]) < VELOCITY_THRESHOLD) {
+                    velocity = [...IDLE_VELOCITY];
+                }
+            } else {
+                velocity = [...IDLE_VELOCITY];
+            }
+        }
 
         scheduleRedraw();
     });
