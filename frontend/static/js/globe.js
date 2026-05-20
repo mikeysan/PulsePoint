@@ -167,31 +167,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         .attr('stroke', 'rgba(59, 130, 246, 0.3)')
         .attr('stroke-width', 1);
 
-    // Gradient / terminator
+    // SVG filter definitions
     const defs = svg.append('defs');
-    const radialGradient = defs.append('radialGradient')
-        .attr('id', 'globeGradient')
-        .attr('cx', '50%')
-        .attr('cy', '50%')
-        .attr('r', '50%');
 
-    radialGradient.append('stop')
-        .attr('offset', '80%')
-        .attr('stop-color', '#fff')
-        .attr('stop-opacity', '0');
+    // Atmosphere blur filter
+    const atmosphereBlur = defs.append('filter')
+        .attr('id', 'atmosphereBlur')
+        .attr('x', '-50%')
+        .attr('y', '-50%')
+        .attr('width', '200%')
+        .attr('height', '200%');
+    atmosphereBlur.append('feGaussianBlur')
+        .attr('stdDeviation', '3');
 
-    radialGradient.append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', '#000')
-        .attr('stop-opacity', '0.6');
-
-    gGlobe.append('circle')
-        .attr('cx', width / 2)
-        .attr('cy', height / 2)
-        .attr('r', projection.scale())
-        .attr('fill', 'url(#globeGradient)')
-        .attr('class', 'terminator')
-        .style('pointer-events', 'none');
+    // Land texture filter
+    const landTexture = defs.append('filter')
+        .attr('id', 'landTexture')
+        .attr('x', '0%')
+        .attr('y', '0%')
+        .attr('width', '100%')
+        .attr('height', '100%');
+    landTexture.append('feTurbulence')
+        .attr('type', 'fractalNoise')
+        .attr('baseFrequency', '0.04')
+        .attr('numOctaves', '3')
+        .attr('result', 'noise');
+    landTexture.append('feColorMatrix')
+        .attr('type', 'matrix')
+        .attr('values', '0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.08 0')
+        .attr('in', 'noise')
+        .attr('result', 'coloredNoise');
+    landTexture.append('feComposite')
+        .attr('operator', 'in')
+        .attr('in', 'coloredNoise')
+        .attr('in2', 'SourceGraphic')
+        .attr('result', 'texture');
+    landTexture.append('feBlend')
+        .attr('mode', 'multiply')
+        .attr('in', 'texture')
+        .attr('in2', 'SourceGraphic');
 
     // Resize
     let resizeTimeout;
