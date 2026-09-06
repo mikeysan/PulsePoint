@@ -90,9 +90,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let isRotating = !prefersReducedMotion;
     let lastTime = 0;
-    let velocity = prefersReducedMotion ? [0, 0] : [0.1, 0];
+    const IDLE_VELOCITY = [0.06, 0];
+    let velocity = prefersReducedMotion ? [0, 0] : [...IDLE_VELOCITY];
     let dragVelocity = [0, 0];
     let skipFrame = false;
+    const FRICTION = 0.98;
+    const VELOCITY_THRESHOLD = 0.001;
 
     // Separate pause reasons
     const pauseState = {
@@ -155,7 +158,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Groups
     const gGlobe = svg.append('g').attr('class', 'globe-group');
-    const gLand = gGlobe.append('g').attr('class', 'land-group');
+    const gLand = gGlobe.append('g')
+        .attr('class', 'land-group')
+        .attr('filter', 'url(#landTexture)');
     const gBeacons = gGlobe.append('g').attr('class', 'beacon-group');
 
     // Water
@@ -167,31 +172,126 @@ document.addEventListener('DOMContentLoaded', async () => {
         .attr('stroke', 'rgba(59, 130, 246, 0.3)')
         .attr('stroke-width', 1);
 
-    // Gradient / terminator
-    const defs = svg.append('defs');
-    const radialGradient = defs.append('radialGradient')
-        .attr('id', 'globeGradient')
-        .attr('cx', '50%')
-        .attr('cy', '50%')
-        .attr('r', '50%');
+    // Dynamic terminator group (rendered after water, before land)
+    const gTerminator = gGlobe.append('g').attr('class', 'terminator-group');
 
-    radialGradient.append('stop')
-        .attr('offset', '80%')
-        .attr('stop-color', '#fff')
-        .attr('stop-opacity', '0');
-
-    radialGradient.append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', '#000')
-        .attr('stop-opacity', '0.6');
-
-    gGlobe.append('circle')
+    // Atmosphere ring
+    const gAtmosphere = gGlobe.append('circle')
+        .attr('class', 'atmosphere-ring')
         .attr('cx', width / 2)
         .attr('cy', height / 2)
         .attr('r', projection.scale())
-        .attr('fill', 'url(#globeGradient)')
-        .attr('class', 'terminator')
+        .attr('fill', 'url(#atmosphereGradient)')
+        .attr('filter', 'url(#atmosphereBlur)')
         .style('pointer-events', 'none');
+
+    // Light source direction in 3D (sun at 0° lon, -60° lat)
+    const lightSource = [0.5, 0, -0.866];
+
+    // Precompute static geographic coordinates of the light source
+    const lightLng = Math.atan2(lightSource[1], lightSource[0]) * 180 / Math.PI;
+    const lightLat = Math.asin(lightSource[2]) * 180 / Math.PI;
+    const antipodeLng = lightLng + 180;
+    const antipodeLat = -lightLat;
+
+    // Pre-create the terminator generator (radius=90 gives a great circle)
+    const terminatorGen = d3.geoCircle().radius(90);
+
+    function updateTerminator() {
+        const [lambda, phi] = projection.rotate();
+
+        // Rotate antipode by current globe rotation to keep terminator fixed to light
+        const rotatedAntipodeLng = antipodeLng - lambda;
+        const rotatedAntipodeLat = antipodeLat - phi;
+
+        const terminatorCircle = terminatorGen.center([rotatedAntipodeLng, rotatedAntipodeLat]);
+
+        gTerminator.selectAll('.night-side')
+            .data([terminatorCircle()])
+            .join('path')
+            .attr('class', 'night-side')
+            .attr('d', path)
+            .attr('fill', 'url(#nightGradient)')
+            .style('pointer-events', 'none');
+    }
+
+    // SVG filter definitions
+    const defs = svg.append('defs');
+
+    // Atmosphere blur filter
+    const atmosphereBlur = defs.append('filter')
+        .attr('id', 'atmosphereBlur')
+        .attr('x', '-50%')
+        .attr('y', '-50%')
+        .attr('width', '200%')
+        .attr('height', '200%');
+    atmosphereBlur.append('feGaussianBlur')
+        .attr('stdDeviation', '3');
+
+    // Land texture filter
+    const landTexture = defs.append('filter')
+        .attr('id', 'landTexture')
+        .attr('x', '0%')
+        .attr('y', '0%')
+        .attr('width', '100%')
+        .attr('height', '100%');
+    landTexture.append('feTurbulence')
+        .attr('type', 'fractalNoise')
+        .attr('baseFrequency', '0.04')
+        .attr('numOctaves', '3')
+        .attr('result', 'noise');
+    landTexture.append('feColorMatrix')
+        .attr('type', 'matrix')
+        .attr('values', '0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.08 0')
+        .attr('in', 'noise')
+        .attr('result', 'coloredNoise');
+    landTexture.append('feComposite')
+        .attr('operator', 'in')
+        .attr('in', 'coloredNoise')
+        .attr('in2', 'SourceGraphic')
+        .attr('result', 'texture');
+    landTexture.append('feBlend')
+        .attr('mode', 'multiply')
+        .attr('in', 'texture')
+        .attr('in2', 'SourceGraphic');
+
+    // Night side gradient: transparent at terminator edge, dark at center
+    const nightGradient = defs.append('radialGradient')
+        .attr('id', 'nightGradient')
+        .attr('cx', '50%')
+        .attr('cy', '50%')
+        .attr('r', '50%');
+    nightGradient.append('stop')
+        .attr('offset', '0%')
+        .attr('stop-color', '#000')
+        .attr('stop-opacity', '0.35');
+    nightGradient.append('stop')
+        .attr('offset', '85%')
+        .attr('stop-color', '#000')
+        .attr('stop-opacity', '0.05');
+    nightGradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', '#000')
+        .attr('stop-opacity', '0');
+
+    // Atmosphere ring gradient
+    const atmosphereGradient = defs.append('radialGradient')
+        .attr('id', 'atmosphereGradient')
+        .attr('cx', '50%')
+        .attr('cy', '50%')
+        .attr('r', '50%');
+    atmosphereGradient.append('stop')
+        .attr('offset', '85%')
+        .attr('stop-color', '#3b82f6')
+        .attr('stop-opacity', '0');
+    atmosphereGradient.append('stop')
+        .attr('offset', '98%')
+        .attr('stop-color', '#3b82f6')
+        .attr('stop-opacity', '0.15');
+    atmosphereGradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', '#3b82f6')
+        .attr('stop-opacity', '0');
 
     // Resize
     let resizeTimeout;
@@ -208,7 +308,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .scale(newScale)
                 .translate([width / 2, height / 2]);
 
-            d3.select('.terminator')
+            currentScale = newScale;
+            minScale = newScale;
+            maxScale = newScale * 3;
+
+            d3.select('.atmosphere-ring')
                 .attr('cx', width / 2)
                 .attr('cy', height / 2)
                 .attr('r', newScale);
@@ -416,6 +520,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return distance > 1.57 ? 'none' : 'block';
             });
 
+        updateTerminator();
         updateVisibleCountries();
     }
 
@@ -441,13 +546,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             rotate[1] + velocity[1] * (dt / 16)
         ]);
 
-        const targetVelocity = [0.1, 0];
+        // Apply friction to post-drag velocity
+        const isDragging = pauseState.drag;
+        if (!isDragging) {
+            const hasDragMomentum = Math.abs(velocity[0] - IDLE_VELOCITY[0]) > VELOCITY_THRESHOLD
+                || Math.abs(velocity[1] - IDLE_VELOCITY[1]) > VELOCITY_THRESHOLD;
 
-        velocity[0] = velocity[0] * 0.95 + targetVelocity[0] * 0.05;
-        velocity[1] = velocity[1] * 0.95 + targetVelocity[1] * 0.05;
+            if (hasDragMomentum) {
+                velocity[0] = IDLE_VELOCITY[0] + (velocity[0] - IDLE_VELOCITY[0]) * FRICTION;
+                velocity[1] = IDLE_VELOCITY[1] + (velocity[1] - IDLE_VELOCITY[1]) * FRICTION;
 
-        if (Math.abs(velocity[0] - targetVelocity[0]) < 0.001) velocity[0] = targetVelocity[0];
-        if (Math.abs(velocity[1] - targetVelocity[1]) < 0.001) velocity[1] = targetVelocity[1];
+                // Clamp to idle when below threshold
+                if (Math.abs(velocity[0] - IDLE_VELOCITY[0]) < VELOCITY_THRESHOLD
+                    && Math.abs(velocity[1] - IDLE_VELOCITY[1]) < VELOCITY_THRESHOLD) {
+                    velocity = [...IDLE_VELOCITY];
+                }
+            } else {
+                velocity = [...IDLE_VELOCITY];
+            }
+        }
 
         scheduleRedraw();
     });
@@ -478,6 +595,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
     container.call(drag);
+
+    // Zoom on scroll (disabled while drawer is open)
+    let currentScale = calculateScale();
+    let minScale = calculateScale();
+    let maxScale = calculateScale() * 3;
+
+    container.on('wheel.zoom', (event) => {
+        const drawer = document.getElementById('sideDrawer');
+        if (drawer && drawer.classList.contains('active')) return;
+
+        event.preventDefault();
+
+        const delta = -event.deltaY;
+        const zoomSensitivity = 0.05;
+        currentScale = Math.max(minScale, Math.min(maxScale,
+            currentScale + delta * currentScale * zoomSensitivity));
+
+        projection.scale(currentScale);
+
+        d3.select('.atmosphere-ring').attr('r', currentScale);
+
+        scheduleRedraw();
+    });
 
     // Keyboard navigation
     let visibleCountries = [];
@@ -1050,6 +1190,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Render content after flyTo completes so skeletons are visible
             // for the full duration of the globe rotation animation
             const recencyPriority = { breaking: 0, recent: 1, old: 2 };
+            function buildBookmarkButton(story) {
+                var isBookmarked = window.PulsePointBookmarks && window.PulsePointBookmarks.isSaved(story.link);
+                return '<button class="bookmark-btn drawer-bookmark' + (isBookmarked ? ' saved' : '') + '" data-link="' + escapeHtml(story.link) + '" data-title="' + escapeHtml(story.title) + '" data-source="' + escapeHtml(story.source) + '" data-summary="' + escapeHtml(story.summary || '') + '" aria-label="' + (isBookmarked ? 'Remove from saved' : 'Save article') + '" title="Save for later"><svg xmlns="http://www.w3.org/2000/svg" fill="' + (isBookmarked ? 'currentColor' : 'none') + '" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg></button>';
+            }
+
             const sortedStories = [...data.stories].sort((a, b) => {
                 const priorityA = recencyPriority[a.recency || 'old'];
                 const priorityB = recencyPriority[b.recency || 'old'];
@@ -1106,6 +1251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <span class="external-icon" aria-hidden="true">↗</span>
                                 </a>
                             </h3>
+                            ${buildBookmarkButton(story)}
                             ${recencyBadge}
                         </div>
                         <div class="meta">
@@ -1131,6 +1277,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             content.querySelectorAll('.drawer-card').forEach(card => {
                 card.classList.add('card-entrance');
+            });
+
+            content.querySelectorAll('.drawer-bookmark').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    var article = {
+                        title: btn.getAttribute('data-title'),
+                        link: btn.getAttribute('data-link'),
+                        source: btn.getAttribute('data-source'),
+                        summary: btn.getAttribute('data-summary')
+                    };
+                    var saved = window.PulsePointBookmarks.toggle(article);
+                    if (saved) {
+                        btn.classList.add('saved');
+                        btn.setAttribute('aria-label', 'Remove from saved');
+                        btn.querySelector('svg').setAttribute('fill', 'currentColor');
+                    } else {
+                        btn.classList.remove('saved');
+                        btn.setAttribute('aria-label', 'Save article');
+                        btn.querySelector('svg').setAttribute('fill', 'none');
+                    }
+                });
             });
 
             const volLabel = data.story_count >= 15 ? 'High' : data.story_count >= 8 ? 'Medium' : 'Low';

@@ -83,3 +83,5 @@ webencodings>=0.5.1
 Werkzeug>=3.1.6
 yarl>=1.22.0
 playwright>=1.48.0
+scikit-learn>=1.6.0
+ollama>=0.4.0
