@@ -223,6 +223,9 @@ docs/superpowers/
 .shared/
 .github/
 .crush/
+
+# AI review report output (local only, never commit)
+AI_SLOP_REVIEW.md
 # Verify Venv
 backend/venv_verify/
 
