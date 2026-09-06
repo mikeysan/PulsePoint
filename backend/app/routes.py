@@ -250,6 +250,37 @@ def record_core_web_vitals():
         return jsonify({'success': False, 'error': 'Failed to record metrics.'}), 500
 
 
+@main_bp.route('/api/briefing')
+@cache.cached(timeout=3600)
+def get_briefing():
+    """
+    Returns the daily news briefing generated via Ollama.
+    Cached for 1 hour. Falls back gracefully if Ollama is unavailable.
+    """
+    try:
+        from .services.briefing import get_briefing
+        data = get_briefing()
+        return jsonify(data)
+    except Exception as e:
+        current_app.logger.error(f"Briefing error: {str(e)}")
+        return jsonify({'available': False, 'reason': 'internal_error'})
+
+
+@main_bp.route('/api/clusters')
+def get_clusters():
+    """
+    Returns raw article clusters without AI summarization.
+    """
+    try:
+        from .services.briefing import _get_articles_from_feed, compute_clusters
+        articles = _get_articles_from_feed()
+        clusters = compute_clusters(articles)
+        return jsonify({'clusters': clusters, 'article_count': len(articles)})
+    except Exception as e:
+        current_app.logger.error(f"Clusters error: {str(e)}")
+        return jsonify({'clusters': [], 'error': str(e)}), 500
+
+
 @main_bp.route('/manifest.json')
 def manifest():
     """Serve PWA manifest."""
