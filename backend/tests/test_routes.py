@@ -138,3 +138,81 @@ class TestErrorPolicy:
         assert detail not in body
         assert 'RuntimeError' not in body
         assert response.get_json()['clusters'] == []
+
+
+class TestPerformanceEndpointIsInternal:
+    """/api/performance reports host utilisation and must not be public."""
+
+    def test_hidden_when_no_token_configured(self, client):
+        """Off by default: an operator opts in by setting METRICS_TOKEN."""
+        client.application.config['METRICS_TOKEN'] = None
+
+        response = client.get('/api/performance')
+
+        assert response.status_code == 404
+
+    def test_rejected_without_the_header(self, client):
+        client.application.config['METRICS_TOKEN'] = 'sekrit'
+
+        response = client.get('/api/performance')
+
+        assert response.status_code == 404
+
+    def test_rejected_with_a_wrong_token(self, client):
+        client.application.config['METRICS_TOKEN'] = 'sekrit'
+
+        response = client.get('/api/performance',
+                              headers={'X-Metrics-Token': 'guess'})
+
+        assert response.status_code == 404
+
+    def test_does_not_disclose_that_it_exists(self, client):
+        """404 body must look like any other missing route."""
+        client.application.config['METRICS_TOKEN'] = 'sekrit'
+
+        blocked = client.get('/api/performance').get_data(as_text=True)
+
+        assert 'metrics' not in blocked.lower()
+        assert 'cpu' not in blocked.lower()
+
+    def test_allowed_with_the_right_token(self, client):
+        client.application.config['METRICS_TOKEN'] = 'sekrit'
+
+        response = client.get('/api/performance',
+                              headers={'X-Metrics-Token': 'sekrit'})
+
+        assert response.status_code == 200
+        assert response.get_json()['metrics']['system']['cpu_percent'] is not None
+
+    def test_does_not_block_a_worker_for_a_second(self, client):
+        """psutil sampling must not stall the request; it used to take ~1s."""
+        import time
+
+        client.application.config['METRICS_TOKEN'] = 'sekrit'
+
+        start = time.time()
+        client.get('/api/performance', headers={'X-Metrics-Token': 'sekrit'})
+        elapsed = time.time() - start
+
+        assert elapsed < 0.5, f'request took {elapsed:.2f}s'
+
+
+class TestVitalsBeacon:
+    """The vitals beacon stays public — browsers post to it — but stays honest."""
+
+    def test_does_not_claim_metrics_were_recorded(self, client):
+        response = client.post('/api/performance/vitals',
+                               json={'lcp': 1.2, 'fid': 0.1, 'cls': 0.05})
+
+        assert response.status_code == 200
+        assert 'recorded' not in response.get_json()['message'].lower()
+
+    def test_oversized_body_is_refused(self, client):
+        """MAX_CONTENT_LENGTH caps what an anonymous caller can push."""
+        oversized = 'x' * (client.application.config['MAX_CONTENT_LENGTH'] + 1024)
+
+        response = client.post('/api/performance/vitals',
+                               data=oversized,
+                               content_type='application/json')
+
+        assert response.status_code == 413

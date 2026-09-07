@@ -168,7 +168,12 @@ class TestPulsePointE2E:
 
     async def test_api_performance_endpoint(self, base_url: str):
         """Test that performance monitoring endpoint works."""
-        response = requests.get(f"{base_url}/api/performance", timeout=10)
+        token = os.getenv('PULSEPOINT_METRICS_TOKEN')
+        if not token:
+            pytest.skip('PULSEPOINT_METRICS_TOKEN unset; /api/performance is internal-only')
+
+        response = requests.get(f"{base_url}/api/performance", timeout=10,
+                                headers={'X-Metrics-Token': token})
 
         assert response.status_code == 200
 

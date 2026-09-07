@@ -163,6 +163,8 @@ TALISMAN_FORCE_HTTPS=false
 | `REQUEST_TIMEOUT` | RSS request timeout in seconds | `5` |
 | `MAX_ARTICLES_PER_FEED` | Max articles per feed | `10` |
 | `TALISMAN_FORCE_HTTPS` | Force HTTPS in production | `false` |
+| `METRICS_TOKEN` | Enables `/api/performance`; required in `X-Metrics-Token` | unset (endpoint off) |
+| `MAX_CONTENT_LENGTH` | Max request body in bytes | `65536` |
 
 ## API Endpoints
 
@@ -178,6 +180,28 @@ Renders the news feed page.
 
 ### `GET /api/news`
 Returns all aggregated news articles as JSON.
+
+### `GET /api/performance`
+**Internal only.** Reports host CPU, memory and disk. Disabled unless
+`METRICS_TOKEN` is set, and then requires that value in an `X-Metrics-Token`
+header; unauthorized callers get a 404 so the endpoint is not disclosed.
+
+`cpu_percent` is average utilisation since the previous request, not an
+instantaneous sample, so polling twice in quick succession reports `0.0`.
+
+Block it at the edge as well — the in-app token is a backstop, not the only
+line. In the Nginx server block:
+
+```nginx
+location = /api/performance {
+    allow 127.0.0.1;
+    deny all;
+}
+```
+
+An IP allowlist inside Flask would not work here: the app runs behind Nginx
+without `ProxyFix`, so `request.remote_addr` is the proxy address for every
+caller.
 
 **Response:**
 ```json
