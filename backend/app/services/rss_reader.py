@@ -14,8 +14,8 @@ from dateutil import parser as date_parser
 from ..models import Article, FeedResult
 from ..utils.security import validate_feed_data
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# No basicConfig here: this is an imported service module, and configuring
+# the root logger from one would override whatever the WSGI server sets up.
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +50,6 @@ class RSSReader:
         try:
             # Fetch feed content with timeout
             async with aiohttp.ClientSession() as session:
-                # UPDATED HEADERS: Changed User-Agent to mimic a browser
                 headers = {
                     'User-Agent': self.USER_AGENT, 
                     'Accept-Encoding': 'gzip, deflate',

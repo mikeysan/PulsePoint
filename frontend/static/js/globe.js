@@ -926,28 +926,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return badges[recency] || '';
     }
 
-    function formatRelativeTime(dateString) {
-        if (!dateString) return '';
-
-        try {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-
-            return date.toLocaleDateString();
-        } catch {
-            return dateString;
-        }
-    }
-
     function calculateReadingTime(summary) {
         if (!summary) return '< 1 min read';
 
@@ -1020,14 +998,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `);
 
-        // Viewport edge detection: clamp tooltip position to stay fully visible
-        const node = tooltip.node();
-        const rect = node.getBoundingClientRect();
+        positionTooltip(event);
+    }
+
+    /**
+     * Place the tooltip near the cursor, clamped to stay fully on screen.
+     * Flips below the cursor when it would overflow the top edge.
+     */
+    function positionTooltip(event) {
+        const rect = tooltip.node().getBoundingClientRect();
         const margin = 8;
         let left = event.pageX;
         let top = event.pageY - 10;
 
-        // Clamp horizontal: prevent overflow on left or right
         if (left + rect.width / 2 > window.innerWidth - margin) {
             left = window.innerWidth - rect.width / 2 - margin;
         }
@@ -1035,7 +1018,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             left = rect.width / 2 + margin;
         }
 
-        // Flip vertical: if tooltip would overflow top, show below cursor instead
         if (top - rect.height < margin) {
             top = event.pageY + rect.height + 10;
         }
@@ -1056,26 +1038,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .style('opacity', 0)
             .html(`<strong>${name}</strong>`);
 
-        const node = tooltip.node();
-        const rect = node.getBoundingClientRect();
-        const margin = 8;
-        let left = event.pageX;
-        let top = event.pageY - 10;
-
-        if (left + rect.width / 2 > window.innerWidth - margin) {
-            left = window.innerWidth - rect.width / 2 - margin;
-        }
-        if (left - rect.width / 2 < margin) {
-            left = rect.width / 2 + margin;
-        }
-        if (top - rect.height < margin) {
-            top = event.pageY + rect.height + 10;
-        }
-
-        tooltip
-            .style('left', `${left}px`)
-            .style('top', `${top}px`)
-            .style('opacity', 1);
+        positionTooltip(event);
     }
 
     function flyToCountry(countryData, duration = 1500) {
@@ -1261,7 +1224,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </span>
                             <span class="meta-domain">${domain}</span>
                             <span class="meta-time" title="${absoluteDate}">
-                                <time datetime="${escapeHtml(story.published)}">${formatRelativeTime(story.published)}</time>
+                                <time datetime="${escapeHtml(story.published)}">${window.PulsePointTime.formatRelativeTime(story.published, true)}</time>
                             </span>
                             <span class="meta-read-time" title="Estimated reading time">
                                 <span aria-hidden="true">📖</span>
@@ -1364,15 +1327,4 @@ document.addEventListener('DOMContentLoaded', async () => {
             toggleKeyboardHelp();
         });
     }
-    // Zoom Support (Optional)
-    // Disabled for now to prioritize rotation
-    /*
-    const zoom = d3.zoom()
-        .scaleExtent([200, 1000])
-        .on('zoom', (event) => {
-            projection.scale(event.transform.k);
-            redraw();
-        });
-    // container.call(zoom);
-    */
 });

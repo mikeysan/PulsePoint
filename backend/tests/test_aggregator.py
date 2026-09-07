@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from app.services.aggregator import get_globe_data, GLOBE_DATA_CACHE_KEY
 from app.models import FeedResult, Article
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from app import create_app
 
 @pytest.fixture
@@ -98,7 +98,9 @@ async def test_get_globe_data_aggregation(app, mock_feed_data, mock_articles):
                 assert data['NG']['story_count'] == 2
                 assert data['NG']['name'] == 'Nigeria'
                 assert len(data['NG']['stories']) == 2
-                assert data['NG']['stories'][0]['title'] == 'Test Story 1'
+                # Both mock articles lack published_parsed, so both are 'old';
+                # the tie-break is newest published first.
+                assert data['NG']['stories'][0]['title'] == 'Test Story 2'
                 
                 # Check GB exists but has 0 stories
                 # Wait, aggregator loops over results. If result has 0 stories, it still adds count=0 because keys are initialized?
@@ -129,3 +131,52 @@ async def test_get_globe_data_cached(app):
         with patch('app.services.aggregator.RSSReader') as MockReader:
             assert not MockReader.called
 
+
+
+@pytest.fixture
+def mixed_recency_articles():
+    """Articles spanning all three recency buckets, deliberately out of order."""
+    now = datetime.now(timezone.utc)
+    return [
+        Article(title='Old story', summary='...', link='http://t/old', source='Test Feed 1',
+                published='2025-01-09',
+                published_parsed=now - timedelta(days=3)),
+        Article(title='Breaking older', summary='...', link='http://t/b1', source='Test Feed 1',
+                published='2025-01-01',
+                published_parsed=now - timedelta(minutes=50)),
+        Article(title='Recent story', summary='...', link='http://t/r', source='Test Feed 1',
+                published='2025-01-05',
+                published_parsed=now - timedelta(hours=6)),
+        Article(title='Breaking newer', summary='...', link='http://t/b2', source='Test Feed 1',
+                published='2025-01-03',
+                published_parsed=now - timedelta(minutes=10)),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_globe_stories_sorted_by_recency_then_newest(
+    app, mock_feed_data, mixed_recency_articles
+):
+    """Breaking stories lead, then recent, then old; newest first within each."""
+    with patch.dict(app.config, {'RSS_FEEDS': mock_feed_data}):
+        with patch('app.services.aggregator.RSSReader') as MockReader:
+            MockReader.return_value.fetch_all_feeds = AsyncMock(return_value=[
+                FeedResult(source='Test Feed 1', url='http://test1.com',
+                           success=True, articles=mixed_recency_articles),
+            ])
+
+            with patch('app.services.aggregator.cache') as mock_cache:
+                mock_cache.get.return_value = None
+
+                data = await get_globe_data()
+
+    titles = [s['title'] for s in data['NG']['stories']]
+    assert titles == [
+        'Breaking newer',
+        'Breaking older',
+        'Recent story',
+        'Old story',
+    ]
+
+    recencies = [s['recency'] for s in data['NG']['stories']]
+    assert recencies == ['breaking', 'breaking', 'recent', 'old']

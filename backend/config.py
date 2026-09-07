@@ -56,6 +56,14 @@ class Config:
     # Security settings
     TALISMAN_FORCE_HTTPS = os.getenv("TALISMAN_FORCE_HTTPS", "false").lower() == "true"
 
+    # /api/performance is internal-only. Unset means the endpoint is off;
+    # set it to require the same value in an X-Metrics-Token header.
+    METRICS_TOKEN = os.getenv("METRICS_TOKEN")
+
+    # Nothing here accepts uploads, so cap request bodies app-wide. Keeps the
+    # unauthenticated vitals beacon from being used to push large payloads.
+    MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", 64 * 1024))
+
 
 class DevelopmentConfig(Config):
     """Development environment configuration."""
@@ -69,9 +77,6 @@ class ProductionConfig(Config):
     TESTING = False
     TALISMAN_FORCE_HTTPS = True
     CACHE_TYPE = "RedisCache"
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
 
     @classmethod
     def validate(cls):
@@ -102,6 +107,6 @@ def get_config(env=None):
     if env is None:
         env = os.getenv("FLASK_ENV", "production")
     config_class = config.get(env, config["default"])
-    if env == "production" and hasattr(config_class, 'validate'):
+    if env == "production":
         config_class.validate()
     return config_class

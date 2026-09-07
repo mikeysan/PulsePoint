@@ -861,6 +861,12 @@ select:focus,
     color: var(--color-accent);
 }
 
+.briefing-topic-chip.active {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
 .briefing-topic-count {
     background: var(--color-accent);
     color: #fff;

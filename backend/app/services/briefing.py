@@ -3,23 +3,16 @@ from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
+# Spec: 30s, after which the ollama_unreachable fallback is returned.
+OLLAMA_TIMEOUT_SECONDS = 30
+
 
 def _get_articles_from_feed():
+    """Articles for clustering, reusing the same cached fetch as /api/news."""
     try:
-        from flask import current_app
-        from .rss_reader import RSSReader
-        from ..utils.async_helpers import run_coro
+        from .articles import get_articles
 
-        feeds = current_app.config.get('RSS_FEEDS', [])
-        timeout = current_app.config.get('REQUEST_TIMEOUT', 10)
-        max_articles = current_app.config.get('MAX_ARTICLES_PER_FEED', 10)
-
-        reader = RSSReader(timeout=timeout, max_articles=max_articles)
-
-        feed_results = run_coro(reader.fetch_all_feeds, feeds)
-
-        articles = reader.get_all_articles(feed_results)
-        return [a.to_dict() for a in articles]
+        return [a.to_dict() for a in get_articles()]
     except Exception as e:
         logger.error(f"Error fetching articles for briefing: {e}")
         return []
@@ -134,6 +127,8 @@ def generate_briefing_summary(clusters, article_count):
     try:
         import ollama
 
+        client = ollama.Client(timeout=OLLAMA_TIMEOUT_SECONDS)
+
         cluster_text = '\n'.join([
             f"Topic {i+1}: {c['label']} "
             f"(Keywords: {', '.join(c['key_terms'][:3])}) "
@@ -149,7 +144,7 @@ Total articles analyzed: {article_count}
 
 Write your briefing:"""
 
-        response = ollama.chat(
+        response = client.chat(
             model='llama3.2:3b',
             messages=[
                 {
@@ -203,6 +198,9 @@ def get_briefing():
                 'article_count': c['article_count'],
                 'sources': c['sources'],
                 'key_terms': c['key_terms'],
+                # Exact membership, so the UI can filter the feed to this
+                # cluster rather than approximating with a keyword search.
+                'links': [a['link'] for a in c['articles']],
             }
             for c in clusters
         ],

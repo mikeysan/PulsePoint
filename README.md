@@ -8,13 +8,12 @@ PulsePoint is a modern, minimalist RSS news aggregator that consolidates live fe
 
 ## Features
 
-- 📰 **Multi-source aggregation** — Fetches from 10 trusted news sources
+- 📰 **Multi-source aggregation** — Fetches from 35 active sources across 44 configured
 - ⚡ **Async RSS parsing** — Fast, concurrent feed fetching
 - 🎨 **Minimalist UI** — Clean, responsive Bootstrap 5 design
 - 🔒 **Security-first** — Input sanitization, XSS protection, security headers
 - 💾 **Smart caching** — Reduces load and respects rate limits
-- 🧪 **Comprehensive tests** — 27+ unit tests with pytest
-- 🧪 **Comprehensive tests** — 27+ unit tests with pytest
+- 🧪 **Comprehensive tests** — 115 tests with pytest
 - 🚀 **CI/CD** — Automated testing with GitHub Actions
 
 ## News Sources
@@ -44,16 +43,12 @@ PulsePoint aggregates news from multiple news sources from around the world.
 **Deployment:**
 - Gunicorn (WSGI server)
 - Nginx (reverse proxy)
-- Gunicorn (WSGI server)
-- Nginx (reverse proxy)
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.11+
-- pip
-- Python 3.11+
+- Python 3.12+
 - pip
 
 ### Local Development
@@ -92,7 +87,7 @@ PulsePoint aggregates news from multiple news sources from around the world.
 cd backend
 
 # Run all unit tests
-pytest tests/test_security.py tests/test_rss_reader.py::TestRSSReader -v
+pytest tests -v
 
 # Run with coverage
 pytest --cov=app tests/
@@ -152,7 +147,7 @@ FLASK_ENV=development
 SECRET_KEY=your-secret-key-here
 CACHE_TYPE=SimpleCache
 CACHE_DEFAULT_TIMEOUT=300
-REQUEST_TIMEOUT=10
+REQUEST_TIMEOUT=5
 MAX_ARTICLES_PER_FEED=10
 TALISMAN_FORCE_HTTPS=false
 ```
@@ -161,23 +156,52 @@ TALISMAN_FORCE_HTTPS=false
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `FLASK_ENV` | Environment (development/production) | `development` |
+| `FLASK_ENV` | Environment (development/production) | `production` |
 | `SECRET_KEY` | Flask secret key | Random |
 | `CACHE_TYPE` | Cache backend type | `SimpleCache` |
 | `CACHE_DEFAULT_TIMEOUT` | Cache timeout in seconds | `300` |
-| `REQUEST_TIMEOUT` | RSS request timeout | `10` |
+| `REQUEST_TIMEOUT` | RSS request timeout in seconds | `5` |
 | `MAX_ARTICLES_PER_FEED` | Max articles per feed | `10` |
 | `TALISMAN_FORCE_HTTPS` | Force HTTPS in production | `false` |
+| `METRICS_TOKEN` | Enables `/api/performance`; required in `X-Metrics-Token` | unset (endpoint off) |
+| `MAX_CONTENT_LENGTH` | Max request body in bytes | `65536` |
 
 ## API Endpoints
 
 ### `GET /`
-Renders the main news feed page.
+Renders the 3D globe visualization (the landing page).
+
+**Response:** HTML
+
+### `GET /feed`
+Renders the news feed page.
 
 **Response:** HTML
 
 ### `GET /api/news`
 Returns all aggregated news articles as JSON.
+
+### `GET /api/performance`
+**Internal only.** Reports host CPU, memory and disk. Disabled unless
+`METRICS_TOKEN` is set, and then requires that value in an `X-Metrics-Token`
+header; unauthorized callers get a 404 so the endpoint is not disclosed.
+
+`cpu_percent` is average utilisation since the previous request, not an
+instantaneous sample, so polling twice in quick succession reports `0.0`.
+
+Block it at the edge as well — the in-app token is a backstop, not the only
+line. In the Nginx server block:
+
+```nginx
+location = /api/performance {
+    allow 127.0.0.1;
+    deny all;
+}
+```
+
+An IP allowlist inside Flask would not work here: the app runs behind Nginx
+without `ProxyFix`, so `request.remote_addr` is the proxy address for every
+caller.
 
 **Response:**
 ```json
@@ -214,7 +238,6 @@ Health check endpoint for monitoring.
 - **XSS Protection** — HTML tags stripped from titles and summaries
 - **URL Validation** — Only HTTP/HTTPS URLs allowed
 - **Security Headers** — Flask-Talisman enforces HTTPS and CSP in production
-- **Security Headers** — Flask-Talisman enforces HTTPS and CSP in production
 - **Rate Limiting** — Caching prevents excessive RSS requests
 
 ## Testing
@@ -225,12 +248,22 @@ Tests are written using pytest. Coverage includes:
 - RSS feed parsing and error handling
 - Route responses and template rendering
 - Article sorting and data structures
+- Globe aggregation, recency ordering and API shape
+- Generated CSS artifacts matching their sources
+
+Browser end-to-end tests skip unless a server is running and Playwright
+browsers are installed:
+
+```bash
+playwright install chromium
+python backend/wsgi.py           # then set PULSEPOINT_E2E_URL if not :5000
+```
 
 Run tests before every commit:
 
 ```bash
 cd backend
-pytest tests/test_security.py tests/test_rss_reader.py::TestRSSReader -v
+pytest tests -v
 ```
 
 ## Contributing

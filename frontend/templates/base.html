@@ -50,68 +50,23 @@
 
     {% block extra_css %}{% endblock %}
 
-    <!-- Theme Toggle JavaScript (Moved to head to prevent FOUC) -->
+    <!-- Theme engine (in head to prevent FOUC) -->
+    {% include '_theme.html' %}
+
     <script>
-        /**
-         * Theme management system
-         * - Respects user's system preference (prefers-color-scheme)
-         * - Allows manual override via toggle button
-         * - Persists preference to localStorage
-         */
-        (function () {
-            const htmlElement = document.documentElement;
-
-            // Get stored theme preference or detect system preference
-            function getPreferredTheme() {
-                const storedTheme = localStorage.getItem('theme');
-                if (storedTheme) {
-                    return storedTheme;
-                }
-                // Check system preference
-                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.addEventListener('DOMContentLoaded', function () {
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', window.PulsePointTheme.cycle);
             }
 
-            // Apply theme to document
-            function setTheme(theme) {
-                htmlElement.setAttribute('data-theme', theme);
-                localStorage.setItem('theme', theme);
-            }
-
-            // Toggle between light and dark themes
-            function toggleTheme() {
-                const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
-                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                setTheme(newTheme);
-            }
-
-            // Initialize theme immediately (before DOM loads) to prevent flash
-            setTheme(getPreferredTheme());
-
-            // Wait for DOM to be ready before attaching event listeners
-            document.addEventListener('DOMContentLoaded', function () {
-                const themeToggle = document.getElementById('themeToggle');
-
-                if (themeToggle) {
-                    // Add click event listener to toggle button
-                    themeToggle.addEventListener('click', toggleTheme);
-                }
-
-                // Listen for system theme changes
-                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-                    // Only auto-switch if user hasn't manually set a preference
-                    if (!localStorage.getItem('theme')) {
-                        setTheme(e.matches ? 'dark' : 'light');
-                    }
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function () {
+                    window.location.reload();
                 });
-
-                const refreshBtn = document.getElementById('refreshBtn');
-                if (refreshBtn) {
-                    refreshBtn.addEventListener('click', function () {
-                        window.location.reload();
-                    });
-                }
-            });
-        })();
+            }
+        });
     </script>
 </head>
 
@@ -278,6 +233,7 @@
         }
     </script>
 
+    <script src="{{ url_for('static', filename='js/time.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/bookmarks.js') }}" defer></script>
     {% block extra_js %}{% endblock %}
 </body>

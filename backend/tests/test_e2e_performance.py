@@ -1,41 +1,72 @@
 """
 End-to-end performance tests for PulsePoint application.
 Tests application functionality after performance optimizations.
+
+These tests drive a real browser against a running instance. Both are
+environment preconditions rather than things the suite provides, so the
+tests skip when either the server or the Playwright browsers are absent.
+
+    python wsgi.py                  # serves on :8000, set PULSEPOINT_E2E_URL
+    playwright install chromium
 """
+import os
+
 import pytest
+import pytest_asyncio
 import asyncio
 import time
 from playwright.async_api import async_playwright, expect
+from playwright.async_api import Error as PlaywrightError
 import requests
 import json
 
 
+BASE_URL = os.getenv('PULSEPOINT_E2E_URL', 'http://localhost:5000')
+
+
+@pytest.fixture(scope="session")
+def base_url():
+    """Base URL for application testing; skips if nothing is serving there."""
+    try:
+        requests.get(f"{BASE_URL}/api/health", timeout=2)
+    except requests.RequestException as exc:
+        pytest.skip(f"No PulsePoint instance at {BASE_URL} ({type(exc).__name__})")
+    return BASE_URL
+
+
+@pytest_asyncio.fixture
+async def browser_context():
+    """
+    Create browser context for testing.
+
+    Function-scoped deliberately: Playwright objects belong to the event loop
+    that created them, and pytest-asyncio gives each test its own loop, so a
+    session-scoped context cannot be shared across tests.
+    """
+    async with async_playwright() as p:
+        try:
+            browser = await p.chromium.launch(headless=True)
+        except PlaywrightError as exc:
+            pytest.skip(f"Playwright browser unavailable ({exc})")
+
+        context = await browser.new_context(
+            viewport={'width': 1280, 'height': 720},
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        )
+        yield context
+        await browser.close()
+
+
+@pytest_asyncio.fixture
+async def page(browser_context):
+    """Create fresh page for each test."""
+    page = await browser_context.new_page()
+    yield page
+    await page.close()
+
+
 class TestPulsePointE2E:
     """Comprehensive E2E tests for PulsePoint performance optimizations."""
-
-    @pytest.fixture(scope="session")
-    async def browser_context(self):
-        """Create browser context for testing."""
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                viewport={'width': 1280, 'height': 720},
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            )
-            yield context
-            await browser.close()
-
-    @pytest.fixture
-    async def page(self, browser_context):
-        """Create fresh page for each test."""
-        page = await browser_context.new_page()
-        yield page
-        await page.close()
-
-    @pytest.fixture(scope="session")
-    def base_url(self):
-        """Base URL for application testing."""
-        return "http://localhost:5000"  # Adjust if your app runs on different port
 
     async def test_homepage_loads_successfully(self, page: "Page", base_url: str):
         """Test that homepage loads without errors."""
@@ -137,7 +168,12 @@ class TestPulsePointE2E:
 
     async def test_api_performance_endpoint(self, base_url: str):
         """Test that performance monitoring endpoint works."""
-        response = requests.get(f"{base_url}/api/performance", timeout=10)
+        token = os.getenv('PULSEPOINT_METRICS_TOKEN')
+        if not token:
+            pytest.skip('PULSEPOINT_METRICS_TOKEN unset; /api/performance is internal-only')
+
+        response = requests.get(f"{base_url}/api/performance", timeout=10,
+                                headers={'X-Metrics-Token': token})
 
         assert response.status_code == 200
 

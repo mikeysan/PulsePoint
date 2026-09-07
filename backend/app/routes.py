@@ -2,16 +2,46 @@
 Routes for PulsePoint application.
 Defines API endpoints and view handlers using Flask Blueprints.
 """
+import hmac
 import time
+
+import psutil
 from flask import Blueprint, render_template, jsonify, current_app, request, make_response
+from werkzeug.exceptions import HTTPException
 
 from . import cache
-from .services.rss_reader import RSSReader
 from .services.aggregator import get_globe_data
+from .services.articles import get_articles
 from .utils.async_helpers import run_coro
+
+# Prime psutil's CPU delta baseline at import so the handler can sample
+# without blocking; the first read otherwise reports 0.0.
+psutil.cpu_percent(interval=None)
 
 # Create blueprint
 main_bp = Blueprint('main', __name__)
+
+
+def _metrics_access_allowed():
+    """
+    Whether the caller may read /api/performance.
+
+    The endpoint reports host CPU, memory and disk, so it is internal-only.
+    An IP allowlist would not work here: the app runs behind nginx without
+    ProxyFix, so request.remote_addr is the proxy's address for every
+    caller, and loopback would match the whole internet. A shared token is
+    checked instead, which holds whatever sits in front.
+
+    Returns:
+        bool: True only when METRICS_TOKEN is configured and matches.
+    """
+    expected = current_app.config.get('METRICS_TOKEN')
+    if not expected:
+        return False
+
+    return hmac.compare_digest(
+        request.headers.get('X-Metrics-Token', ''), expected
+    )
 
 
 @main_bp.route('/globe')
@@ -44,17 +74,7 @@ def news_feed():
         HTML: Rendered template with news articles
     """
     try:
-        # Get RSS feeds from config
-        feeds = current_app.config['RSS_FEEDS']
-        timeout = current_app.config['REQUEST_TIMEOUT']
-        max_articles = current_app.config['MAX_ARTICLES_PER_FEED']
-
-        # Create RSS reader
-        reader = RSSReader(timeout=timeout, max_articles=max_articles)
-
-        # Fetch all feeds (run async in sync context)
-        feed_results = run_coro(reader.fetch_all_feeds, feeds)
-        articles = reader.get_all_articles(feed_results)
+        articles = get_articles()
 
         return render_template('index.html', articles=articles)
 
@@ -73,20 +93,7 @@ def get_news():
         JSON: List of news articles
     """
     try:
-        # Get RSS feeds from config
-        feeds = current_app.config['RSS_FEEDS']
-        timeout = current_app.config['REQUEST_TIMEOUT']
-        max_articles = current_app.config['MAX_ARTICLES_PER_FEED']
-
-        # Create RSS reader
-        reader = RSSReader(timeout=timeout, max_articles=max_articles)
-
-        # Fetch all feeds
-        feed_results = run_coro(reader.fetch_all_feeds, feeds)
-        articles = reader.get_all_articles(feed_results)
-
-        # Convert articles to dictionaries
-        articles_data = [article.to_dict() for article in articles]
+        articles_data = [article.to_dict() for article in get_articles()]
 
         return jsonify(
             {'success': True, 'count': len(articles_data), 'articles': articles_data}
@@ -131,12 +138,16 @@ def performance_monitoring():
     Returns:
         JSON: Performance metrics and system information
     """
-    try:
-        import time
-        import psutil
+    if not _metrics_access_allowed():
+        # 404 rather than 403: an internal endpoint should not confirm it exists.
+        return jsonify({'error': 'Not found.'}), 404
 
-        # System metrics
-        cpu_percent = psutil.cpu_percent(interval=1)
+    try:
+        # interval=None samples against the previous call rather than blocking
+        # for a second. The figure is therefore average utilisation since the
+        # last scrape, not an instantaneous reading — two calls in quick
+        # succession legitimately report 0.0.
+        cpu_percent = psutil.cpu_percent(interval=None)
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
 
@@ -204,15 +215,19 @@ def record_core_web_vitals():
         # Log the Core Web Vitals metrics
         current_app.logger.info(f"Core Web Vitals - LCP: {data.get('lcp')}, FID: {data.get('fid')}, CLS: {data.get('cls')}")
 
-        # Here you could store these metrics in a database or monitoring service
-        # For now, we'll just log them and return success
-
+        # Logged only. There is no metrics store behind this, so the response
+        # must not claim the values were recorded anywhere.
         return jsonify({
             'success': True,
-            'message': 'Core Web Vitals recorded successfully',
-            'recorded_at': time.time()
+            'message': 'Core Web Vitals received.',
+            'received_at': time.time()
         })
 
+    except HTTPException:
+        # Werkzeug's own responses carry the right status — 413 for a body over
+        # MAX_CONTENT_LENGTH, 400 for malformed JSON. Reporting those as 500
+        # would misattribute a client error to the server.
+        raise
     except Exception as e:
         current_app.logger.error(f"Error recording Core Web Vitals: {str(e)}")
         return jsonify({'success': False, 'error': 'Failed to record metrics.'}), 500
@@ -246,7 +261,7 @@ def get_clusters():
         return jsonify({'clusters': clusters, 'article_count': len(articles)})
     except Exception as e:
         current_app.logger.error(f"Clusters error: {str(e)}")
-        return jsonify({'clusters': [], 'error': str(e)}), 500
+        return jsonify({'clusters': [], 'error': 'Failed to compute clusters.'}), 500
 
 
 @main_bp.route('/manifest.json')

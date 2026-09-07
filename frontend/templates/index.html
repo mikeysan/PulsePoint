@@ -65,7 +65,7 @@
                 </svg>
                 Daily Briefing
             </h2>
-            <button class="briefing-toggle" id="briefingToggle" aria-label="Toggle briefing visibility">\u2212</button>
+            <button class="briefing-toggle" id="briefingToggle" aria-label="Toggle briefing visibility">−</button>
         </div>
         <div id="briefingContent">
             <p class="briefing-summary" id="briefingSummary"></p>
@@ -76,7 +76,8 @@
     <div class="row g-4" id="articlesGrid">
         {% for article in articles %}
         <div class="col-12 col-md-6 col-lg-4 article-item" data-title="{{ article.title|lower }}"
-            data-summary="{{ article.summary|striptags|lower }}" data-source="{{ article.source }}">
+            data-summary="{{ article.summary|striptags|lower }}" data-source="{{ article.source }}"
+            data-link="{{ article.link }}">
             <article class="news-card fade-in" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
                 <button class="bookmark-btn" data-link="{{ article.link }}" data-title="{{ article.title }}" data-source="{{ article.source }}" data-summary="{{ article.summary|striptags }}" aria-label="Save article" title="Save for later">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -121,29 +122,9 @@
 
 {% block extra_js %}
 <script>
-    // Format relative time for dates
-    function formatRelativeTime(dateString) {
-        try {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
-            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-
-            // For older dates, show formatted date
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        } catch (e) {
-            return dateString;
-        }
-    }
-
     var articleItems, articleCount, noResults, articlesGrid, totalArticles;
+    // Links of the topic cluster currently pinned, or null for all articles.
+    var clusterLinks = null;
 
     // Search/Filter functionality
     function initializeSearch() {
@@ -243,8 +224,10 @@
                 var summary = item.getAttribute('data-summary') || '';
                 var matches = title.includes(searchTerm) || summary.includes(searchTerm);
                 var sourceOk = applySourceFilter(item);
+                var clusterOk = clusterLinks === null ||
+                    clusterLinks.indexOf(item.getAttribute('data-link')) !== -1;
 
-                if (matches && sourceOk) {
+                if (matches && sourceOk && clusterOk) {
                     item.style.display = '';
                     visibleCount++;
                 } else {
@@ -252,13 +235,16 @@
                 }
             });
 
-            if (searchTerm || Object.values(sourceState).some(function (v) { return v === false; })) {
+            var filtering = searchTerm || clusterLinks !== null ||
+                Object.values(sourceState).some(function (v) { return v === false; });
+
+            if (filtering) {
                 articleCount.textContent = 'Showing ' + visibleCount + ' of ' + totalArticles + ' articles';
             } else {
                 articleCount.textContent = 'Showing ' + totalArticles + ' articles';
             }
 
-            if (visibleCount === 0 && (searchTerm || Object.values(sourceState).some(function (v) { return v === false; }))) {
+            if (visibleCount === 0 && filtering) {
                 noResults.style.display = 'flex';
                 articlesGrid.style.display = 'none';
             } else {
@@ -276,8 +262,17 @@
         // Clear search
         function clearSearch() {
             searchInput.value = '';
-            applyAllFilters('');
+            setClusterFilter(null);
             searchInput.focus();
+        }
+
+        // Pin the feed to one topic cluster, or pass null to release it.
+        function setClusterFilter(links) {
+            clusterLinks = links;
+            document.querySelectorAll('.briefing-topic-chip').forEach(function (el) {
+                el.classList.toggle('active', el.dataset.pinned === 'true');
+            });
+            applyAllFilters(searchInput.value);
         }
 
         // Event listeners
@@ -302,7 +297,7 @@
         const timeElements = document.querySelectorAll('.news-date[data-timestamp]');
         timeElements.forEach(function (elem) {
             const timestamp = elem.getAttribute('data-timestamp');
-            elem.textContent = formatRelativeTime(timestamp);
+            elem.textContent = window.PulsePointTime.formatRelativeTime(timestamp);
         });
 
         document.querySelectorAll('.read-time').forEach(function (el) {
@@ -335,10 +330,12 @@
                     chip.innerHTML = t.label + ' <span class="briefing-topic-count">' + t.article_count + '</span>';
                     chip.title = 'Sources: ' + (t.sources || []).join(', ');
                     chip.addEventListener('click', function () {
-                        var terms = (t.key_terms || []).join(' ').toLowerCase();
-                        var searchInput = document.getElementById('searchInput');
-                        searchInput.value = terms;
-                        applyAllFilters(terms);
+                        var pinning = chip.dataset.pinned !== 'true';
+                        document.querySelectorAll('.briefing-topic-chip').forEach(function (el) {
+                            el.dataset.pinned = 'false';
+                        });
+                        chip.dataset.pinned = pinning ? 'true' : 'false';
+                        setClusterFilter(pinning ? (t.links || []) : null);
                     });
                     topicsEl.appendChild(chip);
                 });
@@ -460,23 +457,21 @@
                 }
             }, { passive: true });
 
-            document.addEventListener('touchend', function () {
-                if (pulling && window.scrollY === 0) {
-                    var lastTouch = null;
-                    var touchEndHandler = function (e) { lastTouch = e.changedTouches[0]; };
-                    document.addEventListener('touchend', touchEndHandler, { once: true });
-                    setTimeout(function () {
-                        if (lastTouch && (lastTouch.clientY - startY) > 60) {
-                            pullEl.textContent = 'Refreshing...';
-                            location.reload();
-                        } else {
-                            pullEl.style.display = 'none';
-                        }
-                    }, 50);
+            document.addEventListener('touchend', function (e) {
+                // Read the end position from this event. The previous version
+                // registered a second touchend listener to capture it, which
+                // only fires on the next touch, so the threshold never passed.
+                if (pulling && window.scrollY === 0 &&
+                    (e.changedTouches[0].clientY - startY) > 60) {
+                    pullEl.textContent = 'Refreshing...';
+                    location.reload();
+                    return;
                 }
+
+                pullEl.style.display = 'none';
                 pulling = false;
             });
-        });
+        })();
     });
 
     // Auto-refresh every 5 minutes
