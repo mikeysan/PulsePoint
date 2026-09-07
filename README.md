@@ -8,13 +8,12 @@ PulsePoint is a modern, minimalist RSS news aggregator that consolidates live fe
 
 ## Features
 
-- 📰 **Multi-source aggregation** — Fetches from 10 trusted news sources
+- 📰 **Multi-source aggregation** — Fetches from 35 active sources across 44 configured
 - ⚡ **Async RSS parsing** — Fast, concurrent feed fetching
 - 🎨 **Minimalist UI** — Clean, responsive Bootstrap 5 design
 - 🔒 **Security-first** — Input sanitization, XSS protection, security headers
 - 💾 **Smart caching** — Reduces load and respects rate limits
-- 🧪 **Comprehensive tests** — 27+ unit tests with pytest
-- 🧪 **Comprehensive tests** — 27+ unit tests with pytest
+- 🧪 **Comprehensive tests** — 115 tests with pytest
 - 🚀 **CI/CD** — Automated testing with GitHub Actions
 
 ## News Sources
@@ -44,16 +43,12 @@ PulsePoint aggregates news from multiple news sources from around the world.
 **Deployment:**
 - Gunicorn (WSGI server)
 - Nginx (reverse proxy)
-- Gunicorn (WSGI server)
-- Nginx (reverse proxy)
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.11+
-- pip
-- Python 3.11+
+- Python 3.12+
 - pip
 
 ### Local Development
@@ -152,7 +147,7 @@ FLASK_ENV=development
 SECRET_KEY=your-secret-key-here
 CACHE_TYPE=SimpleCache
 CACHE_DEFAULT_TIMEOUT=300
-REQUEST_TIMEOUT=10
+REQUEST_TIMEOUT=5
 MAX_ARTICLES_PER_FEED=10
 TALISMAN_FORCE_HTTPS=false
 ```
@@ -161,18 +156,23 @@ TALISMAN_FORCE_HTTPS=false
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `FLASK_ENV` | Environment (development/production) | `development` |
+| `FLASK_ENV` | Environment (development/production) | `production` |
 | `SECRET_KEY` | Flask secret key | Random |
 | `CACHE_TYPE` | Cache backend type | `SimpleCache` |
 | `CACHE_DEFAULT_TIMEOUT` | Cache timeout in seconds | `300` |
-| `REQUEST_TIMEOUT` | RSS request timeout | `10` |
+| `REQUEST_TIMEOUT` | RSS request timeout in seconds | `5` |
 | `MAX_ARTICLES_PER_FEED` | Max articles per feed | `10` |
 | `TALISMAN_FORCE_HTTPS` | Force HTTPS in production | `false` |
 
 ## API Endpoints
 
 ### `GET /`
-Renders the main news feed page.
+Renders the 3D globe visualization (the landing page).
+
+**Response:** HTML
+
+### `GET /feed`
+Renders the news feed page.
 
 **Response:** HTML
 
@@ -213,7 +213,6 @@ Health check endpoint for monitoring.
 - **Input Sanitization** — All user-facing content is sanitized using bleach
 - **XSS Protection** — HTML tags stripped from titles and summaries
 - **URL Validation** — Only HTTP/HTTPS URLs allowed
-- **Security Headers** — Flask-Talisman enforces HTTPS and CSP in production
 - **Security Headers** — Flask-Talisman enforces HTTPS and CSP in production
 - **Rate Limiting** — Caching prevents excessive RSS requests
 

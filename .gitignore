@@ -221,7 +221,6 @@ docs/superpowers/
 .agent/
 .claude/
 .shared/
-.github/
 .crush/
 
 # AI review report output (local only, never commit)
