@@ -112,3 +112,29 @@ class TestTemplateRendering:
         """Test that news container exists in template."""
         response = client.get('/feed')
         assert b'news-container' in response.data
+
+
+class TestErrorPolicy:
+    """Client-facing error responses must not disclose internal detail."""
+
+    def test_clusters_error_does_not_leak_exception_text(self, client, monkeypatch):
+        """/api/clusters must report a generic message, not str(e)."""
+        from app.services import briefing
+
+        detail = 'kaboom at /srv/secret/path.py line 42'
+
+        def _explode(*args, **kwargs):
+            raise RuntimeError(detail)
+
+        monkeypatch.setattr(briefing, '_get_articles_from_feed', lambda: [
+            {'title': 't', 'summary': 's', 'source': 'Test', 'link': 'https://e.com'}
+        ])
+        monkeypatch.setattr(briefing, 'compute_clusters', _explode)
+
+        response = client.get('/api/clusters')
+        body = response.get_data(as_text=True)
+
+        assert response.status_code == 500
+        assert detail not in body
+        assert 'RuntimeError' not in body
+        assert response.get_json()['clusters'] == []

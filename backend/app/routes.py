@@ -246,7 +246,7 @@ def get_clusters():
         return jsonify({'clusters': clusters, 'article_count': len(articles)})
     except Exception as e:
         current_app.logger.error(f"Clusters error: {str(e)}")
-        return jsonify({'clusters': [], 'error': str(e)}), 500
+        return jsonify({'clusters': [], 'error': 'Failed to compute clusters.'}), 500
 
 
 @main_bp.route('/manifest.json')
