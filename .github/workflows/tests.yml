@@ -22,4 +22,4 @@ jobs:
       - name: Run tests
         run: |
           cd backend
-          pytest tests/test_security.py tests/test_rss_reader.py::TestRSSReader -v
+          pytest tests/test_security.py tests/test_async_helpers.py tests/test_rss_reader.py::TestRSSReader -v

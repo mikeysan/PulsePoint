@@ -6,9 +6,9 @@ logger = logging.getLogger(__name__)
 
 def _get_articles_from_feed():
     try:
-        import asyncio
         from flask import current_app
         from .rss_reader import RSSReader
+        from ..utils.async_helpers import run_coro
 
         feeds = current_app.config.get('RSS_FEEDS', [])
         timeout = current_app.config.get('REQUEST_TIMEOUT', 10)
@@ -16,14 +16,7 @@ def _get_articles_from_feed():
 
         reader = RSSReader(timeout=timeout, max_articles=max_articles)
 
-        try:
-            feed_results = asyncio.run(reader.fetch_all_feeds(feeds))
-        except RuntimeError:
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                feed_results = pool.submit(
-                    asyncio.run, reader.fetch_all_feeds(feeds)
-                ).result()
+        feed_results = run_coro(reader.fetch_all_feeds, feeds)
 
         articles = reader.get_all_articles(feed_results)
         return [a.to_dict() for a in articles]
