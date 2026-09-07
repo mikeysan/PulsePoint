@@ -6,8 +6,8 @@ import time
 from flask import Blueprint, render_template, jsonify, current_app, request, make_response
 
 from . import cache
-from .services.rss_reader import RSSReader
 from .services.aggregator import get_globe_data
+from .services.articles import get_articles
 from .utils.async_helpers import run_coro
 
 # Create blueprint
@@ -44,17 +44,7 @@ def news_feed():
         HTML: Rendered template with news articles
     """
     try:
-        # Get RSS feeds from config
-        feeds = current_app.config['RSS_FEEDS']
-        timeout = current_app.config['REQUEST_TIMEOUT']
-        max_articles = current_app.config['MAX_ARTICLES_PER_FEED']
-
-        # Create RSS reader
-        reader = RSSReader(timeout=timeout, max_articles=max_articles)
-
-        # Fetch all feeds (run async in sync context)
-        feed_results = run_coro(reader.fetch_all_feeds, feeds)
-        articles = reader.get_all_articles(feed_results)
+        articles = get_articles()
 
         return render_template('index.html', articles=articles)
 
@@ -73,20 +63,7 @@ def get_news():
         JSON: List of news articles
     """
     try:
-        # Get RSS feeds from config
-        feeds = current_app.config['RSS_FEEDS']
-        timeout = current_app.config['REQUEST_TIMEOUT']
-        max_articles = current_app.config['MAX_ARTICLES_PER_FEED']
-
-        # Create RSS reader
-        reader = RSSReader(timeout=timeout, max_articles=max_articles)
-
-        # Fetch all feeds
-        feed_results = run_coro(reader.fetch_all_feeds, feeds)
-        articles = reader.get_all_articles(feed_results)
-
-        # Convert articles to dictionaries
-        articles_data = [article.to_dict() for article in articles]
+        articles_data = [article.to_dict() for article in get_articles()]
 
         return jsonify(
             {'success': True, 'count': len(articles_data), 'articles': articles_data}
