@@ -25,30 +25,22 @@ class TestPerformanceOptimizations:
         assert "playwright" in requirements_content
 
     def test_config_includes_performance_settings(self):
-        """Test that configuration includes performance settings."""
-        config_path = Path(__file__).parent.parent / "config.py"
+        """Performance settings resolve to usable values, not just appear in source."""
+        from config import Config
 
-        with open(config_path, 'r') as f:
-            config_content = f.read()
+        assert Config.REDIS_URL.startswith('redis://')
+        assert Config.ENABLE_COMPRESSION is True
+        assert Config.CACHE_RSS_TIMEOUT == 600
+        assert Config.REQUEST_TIMEOUT == 5  # reduced from 10 for faster failover
 
-        # Check for performance configuration
-        assert "REDIS_URL" in config_content
-        assert "ENABLE_COMPRESSION" in config_content
-        assert "CACHE_RSS_TIMEOUT" in config_content
-        assert "REQUEST_TIMEOUT = 5" in config_content  # Reduced timeout
+    def test_app_init_includes_compression(self, client):
+        """Responses are actually compressed and carry the performance headers."""
+        response = client.get('/', headers={'Accept-Encoding': 'gzip'})
 
-    def test_app_init_includes_compression(self):
-        """Test that app initialization includes compression."""
-        app_init_path = Path(__file__).parent.parent / "app" / "__init__.py"
-
-        with open(app_init_path, 'r') as f:
-            app_init_content = f.read()
-
-        # Check for performance features
-        assert "Flask-Compress" in app_init_content
-        assert "compress" in app_init_content
-        assert "add_performance_headers" in app_init_content
-        assert "stale-while-revalidate" in app_init_content
+        assert response.status_code == 200
+        assert response.headers.get('Content-Encoding') == 'gzip'
+        assert 'Accept-Encoding' in response.headers.get('Vary', '')
+        assert 'stale-while-revalidate' in response.headers.get('Cache-Control', '')
 
     def test_routes_include_performance_endpoints(self):
         """Test that routes include performance monitoring endpoints."""
@@ -127,15 +119,9 @@ class TestPerformanceOptimizations:
                 assert "}" in css_content, f"CSS file {css_path} has no closing braces"
                 assert ":" in css_content, f"CSS file {css_path} has no property declarations"
 
-    def test_route_timeout_updated(self):
-        """Test that RSS timeout has been reduced for performance."""
-        config_path = Path(__file__).parent.parent / "config.py"
-
-        with open(config_path, 'r') as f:
-            config_content = f.read()
-
-        # Check that timeout is set to 5 seconds
-        assert "REQUEST_TIMEOUT = 5" in config_content, "RSS timeout not properly reduced"
+    def test_route_timeout_updated(self, client):
+        """The timeout the running app uses is the reduced value, not just the default."""
+        assert client.application.config['REQUEST_TIMEOUT'] == 5
 
     def test_cache_timeouts_configured(self):
         """Test that cache timeouts are properly configured."""
@@ -150,14 +136,10 @@ class TestPerformanceOptimizations:
         assert "CACHE_API_TIMEOUT" in config_content
 
     def test_production_config_uses_redis(self):
-        """Test that production configuration uses Redis."""
-        config_path = Path(__file__).parent.parent / "config.py"
+        """Production selects the Redis cache backend."""
+        from config import ProductionConfig
 
-        with open(config_path, 'r') as f:
-            config_content = f.read()
-
-        # Check that production config uses Redis
-        assert "CACHE_TYPE = 'RedisCache'" in config_content
+        assert ProductionConfig.CACHE_TYPE == 'RedisCache'
 
     def test_imports_are_valid(self):
         """Test that all Python files have valid imports."""
