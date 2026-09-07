@@ -198,6 +198,9 @@ def get_briefing():
                 'article_count': c['article_count'],
                 'sources': c['sources'],
                 'key_terms': c['key_terms'],
+                # Exact membership, so the UI can filter the feed to this
+                # cluster rather than approximating with a keyword search.
+                'links': [a['link'] for a in c['articles']],
             }
             for c in clusters
         ],

@@ -101,3 +101,37 @@ class TestOllamaTimeout:
 
         # None is what get_briefing turns into reason='ollama_unreachable'.
         assert summary is None
+
+
+class TestTopicChipFiltering:
+    """Spec, UI Integration: a topic chip filters the feed to that cluster."""
+
+    def test_topics_expose_their_article_links(self, client):
+        """Exact membership must reach the client; key terms only approximate it."""
+        from unittest.mock import patch
+
+        from app.services import briefing
+
+        articles = (
+            [{'title': f'Climate story {i}', 'link': f'https://e.com/c{i}',
+              'summary': 'Emissions targets and carbon policy.',
+              'source': 'BBC News'} for i in range(6)]
+            + [{'title': f'Tech story {i}', 'link': f'https://e.com/t{i}',
+                'summary': 'Markets surge as tech earnings beat expectations.',
+                'source': 'Wired'} for i in range(6)]
+        )
+
+        with client.application.app_context():
+            with patch.object(briefing, '_get_articles_from_feed', return_value=articles):
+                with patch.object(briefing, 'generate_briefing_summary',
+                                  return_value='A briefing.'):
+                    payload = briefing.get_briefing()
+
+        assert payload['available'] is True
+        assert payload['topics'], 'expected at least one topic'
+
+        known = {a['link'] for a in articles}
+        for topic in payload['topics']:
+            assert 'links' in topic, 'topic must carry its article links'
+            assert len(topic['links']) == topic['article_count']
+            assert set(topic['links']) <= known
