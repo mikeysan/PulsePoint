@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 # Cache key for globe data
 GLOBE_DATA_CACHE_KEY = 'globe_data_v1'
 
+# Sort priority for story recency; higher is more urgent.
+RECENCY_RANK = {'breaking': 2, 'recent': 1, 'old': 0}
+
 async def get_globe_data() -> Dict[str, Any]:
     """
     Fetches all RSS feeds and reorganizes them into a country-based structure
@@ -108,10 +111,11 @@ async def get_globe_data() -> Dict[str, Any]:
         country_data['story_count'] = len(country_data['stories'])
         total_stories += country_data['story_count']
 
-        # Sort stories by recency (most recent first)
-        # Stories with recency 'breaking' come first, then 'recent', then 'old'
+        # Stories with recency 'breaking' come first, then 'recent', then 'old';
+        # newest first within each group. Both keys sort descending under
+        # reverse=True, so urgency is ranked high-to-low.
         country_data['stories'].sort(key=lambda s: (
-            0 if s['recency'] == 'breaking' else 1 if s['recency'] == 'recent' else 2,
+            RECENCY_RANK.get(s['recency'], 0),
             s.get('published', '')
         ), reverse=True)
 
