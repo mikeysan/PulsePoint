@@ -1,0 +1,78 @@
+<!-- Shared theme engine. Inlined in <head> of every page to prevent a flash
+     of the wrong palette; included rather than copied so the feed and globe
+     pages cannot drift apart on storage key or state model. -->
+<script>
+    /**
+     * Theme management system
+     * - Stores "light", "dark" or "system" under `pulsepoint-theme`
+     * - "system" follows prefers-color-scheme, live
+     * - Toggle cycles light -> dark -> system
+     */
+    (function () {
+        const htmlElement = document.documentElement;
+        const STORAGE_KEY = 'pulsepoint-theme';
+        const CYCLE = ['light', 'dark', 'system'];
+        const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+        // Stored preference, migrating the older two-state `theme` key so an
+        // existing visitor keeps the look they already chose.
+        function getStoredChoice() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (CYCLE.indexOf(stored) !== -1) {
+                return stored;
+            }
+
+            const legacy = localStorage.getItem('theme');
+            if (legacy === 'light' || legacy === 'dark') {
+                localStorage.setItem(STORAGE_KEY, legacy);
+                localStorage.removeItem('theme');
+                return legacy;
+            }
+
+            return 'system';
+        }
+
+        // Resolve a stored choice to the palette actually rendered.
+        function resolve(choice) {
+            return choice === 'system'
+                ? (darkQuery.matches ? 'dark' : 'light')
+                : choice;
+        }
+
+        function applyTheme(choice) {
+            htmlElement.setAttribute('data-theme', resolve(choice));
+            htmlElement.setAttribute('data-theme-choice', choice);
+        }
+
+        function setTheme(choice) {
+            localStorage.setItem(STORAGE_KEY, choice);
+            applyTheme(choice);
+        }
+
+        function cycleTheme() {
+            const current = htmlElement.getAttribute('data-theme-choice') || 'system';
+            setTheme(CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length]);
+        }
+
+        // Apply before DOM load to prevent a flash of the wrong palette. Reads
+        // without writing, so an untouched preference stays "system".
+        applyTheme(getStoredChoice());
+
+        // Follow the OS while the choice is "system". The previous version
+        // guarded on `!localStorage.getItem('theme')`, which initialisation had
+        // always just populated, so this never fired.
+        darkQuery.addEventListener('change', function () {
+            if (htmlElement.getAttribute('data-theme-choice') === 'system') {
+                applyTheme('system');
+            }
+        });
+
+        window.PulsePointTheme = {
+            cycle: cycleTheme,
+            set: setTheme,
+            choice: function () {
+                return htmlElement.getAttribute('data-theme-choice');
+            }
+        };
+    })();
+</script>

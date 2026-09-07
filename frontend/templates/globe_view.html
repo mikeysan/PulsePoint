@@ -14,16 +14,8 @@
     <!-- D3.js -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
+    {% include '_theme.html' %}
 </head>
-<script>
-(function () {
-    var htmlEl = document.documentElement;
-    var stored = localStorage.getItem('theme');
-    if (stored) {
-        htmlEl.setAttribute('data-theme', stored);
-    }
-})();
-</script>
 <body>
 
     <!-- Skip to content link for accessibility -->
@@ -154,13 +146,8 @@
     <script src="{{ url_for('static', filename='js/bookmarks.js') }}"></script>
     <script src="{{ url_for('static', filename='js/globe.js') }}"></script>
 <script>
-document.getElementById('globe-theme-toggle').addEventListener('click', function () {
-    var htmlEl = document.documentElement;
-    var current = htmlEl.getAttribute('data-theme') || 'dark';
-    var next = current === 'dark' ? 'light' : 'dark';
-    htmlEl.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-});
+document.getElementById('globe-theme-toggle')
+    .addEventListener('click', window.PulsePointTheme.cycle);
 </script>
 </body>
 </html>
