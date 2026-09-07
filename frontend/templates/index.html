@@ -65,7 +65,7 @@
                 </svg>
                 Daily Briefing
             </h2>
-            <button class="briefing-toggle" id="briefingToggle" aria-label="Toggle briefing visibility">\u2212</button>
+            <button class="briefing-toggle" id="briefingToggle" aria-label="Toggle briefing visibility">−</button>
         </div>
         <div id="briefingContent">
             <p class="briefing-summary" id="briefingSummary"></p>
@@ -460,23 +460,21 @@
                 }
             }, { passive: true });
 
-            document.addEventListener('touchend', function () {
-                if (pulling && window.scrollY === 0) {
-                    var lastTouch = null;
-                    var touchEndHandler = function (e) { lastTouch = e.changedTouches[0]; };
-                    document.addEventListener('touchend', touchEndHandler, { once: true });
-                    setTimeout(function () {
-                        if (lastTouch && (lastTouch.clientY - startY) > 60) {
-                            pullEl.textContent = 'Refreshing...';
-                            location.reload();
-                        } else {
-                            pullEl.style.display = 'none';
-                        }
-                    }, 50);
+            document.addEventListener('touchend', function (e) {
+                // Read the end position from this event. The previous version
+                // registered a second touchend listener to capture it, which
+                // only fires on the next touch, so the threshold never passed.
+                if (pulling && window.scrollY === 0 &&
+                    (e.changedTouches[0].clientY - startY) > 60) {
+                    pullEl.textContent = 'Refreshing...';
+                    location.reload();
+                    return;
                 }
+
+                pullEl.style.display = 'none';
                 pulling = false;
             });
-        });
+        })();
     });
 
     // Auto-refresh every 5 minutes
