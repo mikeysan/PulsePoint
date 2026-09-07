@@ -92,7 +92,7 @@ PulsePoint aggregates news from multiple news sources from around the world.
 cd backend
 
 # Run all unit tests
-pytest tests/test_security.py tests/test_rss_reader.py::TestRSSReader -v
+pytest tests -v
 
 # Run with coverage
 pytest --cov=app tests/
@@ -225,12 +225,22 @@ Tests are written using pytest. Coverage includes:
 - RSS feed parsing and error handling
 - Route responses and template rendering
 - Article sorting and data structures
+- Globe aggregation, recency ordering and API shape
+- Generated CSS artifacts matching their sources
+
+Browser end-to-end tests skip unless a server is running and Playwright
+browsers are installed:
+
+```bash
+playwright install chromium
+python backend/wsgi.py           # then set PULSEPOINT_E2E_URL if not :5000
+```
 
 Run tests before every commit:
 
 ```bash
 cd backend
-pytest tests/test_security.py tests/test_rss_reader.py::TestRSSReader -v
+pytest tests -v
 ```
 
 ## Contributing
