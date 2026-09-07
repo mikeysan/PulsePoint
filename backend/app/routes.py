@@ -56,20 +56,13 @@ def news_feed():
         try:
             feed_results = asyncio.run(reader.fetch_all_feeds(feeds))
             articles = reader.get_all_articles(feed_results)
-        except RuntimeError as e:
-            # Handle case where event loop is already running (e.g., in tests)
-            if "event loop is already running" in str(e):
-                loop = asyncio.get_running_loop()
-                # Create a task to run the coroutine in the existing loop
-                # This is tricky in a sync function, we might need to rely on the loop being run elsewhere
-                # or use a thread to isolate execution.
-                # For simplicity in this fix, fallback to running in a separate thread
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    feed_results = pool.submit(asyncio.run, reader.fetch_all_feeds(feeds)).result()
-                articles = reader.get_all_articles(feed_results)
-            else:
-                raise e
+        except RuntimeError:
+            # An event loop is already running (e.g. in tests) and asyncio.run()
+            # refuses to nest, so isolate the call in a separate thread.
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                feed_results = pool.submit(asyncio.run, reader.fetch_all_feeds(feeds)).result()
+            articles = reader.get_all_articles(feed_results)
 
         return render_template('index.html', articles=articles)
 
@@ -100,14 +93,11 @@ def get_news():
         try:
             feed_results = asyncio.run(reader.fetch_all_feeds(feeds))
             articles = reader.get_all_articles(feed_results)
-        except RuntimeError as e:
-            if "event loop is already running" in str(e):
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    feed_results = pool.submit(asyncio.run, reader.fetch_all_feeds(feeds)).result()
-                articles = reader.get_all_articles(feed_results)
-            else:
-                raise e
+        except RuntimeError:
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                feed_results = pool.submit(asyncio.run, reader.fetch_all_feeds(feeds)).result()
+            articles = reader.get_all_articles(feed_results)
 
         # Convert articles to dictionaries
         articles_data = [article.to_dict() for article in articles]
@@ -141,14 +131,11 @@ def get_globe_data_api():
         # Run async aggregator in sync context
         try:
             data = asyncio.run(get_globe_data())
-        except RuntimeError as e:
-            if "event loop is already running" in str(e):
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    data = pool.submit(asyncio.run, get_globe_data()).result()
-            else:
-                raise e
-            
+        except RuntimeError:
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                data = pool.submit(asyncio.run, get_globe_data()).result()
+
         return jsonify(data)
     except Exception as e:
         current_app.logger.error(f"Globe API Error: {str(e)}")
