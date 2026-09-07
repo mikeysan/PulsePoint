@@ -101,7 +101,7 @@ class TestTemplateRendering:
 
     def test_base_template_elements(self, client):
         """Test that base template elements are present."""
-        response = client.get('/')
+        response = client.get('/feed')
         data = response.data.decode('utf-8')
 
         assert 'PulsePoint' in data
@@ -110,5 +110,5 @@ class TestTemplateRendering:
 
     def test_news_container_exists(self, client):
         """Test that news container exists in template."""
-        response = client.get('/')
+        response = client.get('/feed')
         assert b'news-container' in response.data
