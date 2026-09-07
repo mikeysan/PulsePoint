@@ -1,6 +1,9 @@
 """
 Tests for the briefing service.
-These are NOT run in CI — CI only targets test_security.py and test_rss_reader.py.
+
+These run in CI along with the rest of the suite. They exercise clustering
+only; nothing here needs Ollama, which is imported lazily and degrades to the
+documented fallback when absent.
 """
 from app.services.briefing import compute_clusters, get_briefing
 
