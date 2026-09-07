@@ -81,17 +81,19 @@ def inject_critical_css():
         def replacement(match):
             return f"{match.group(1)}\n        {critical_content}\n    {match.group(3)}"
         
-        new_html_content = re.sub(pattern, replacement, html_content, flags=re.DOTALL)
-        
-        if new_html_content == html_content:
-            print("Warning: Could not find Critical CSS block in base.html to replace.")
-            # Fallback: Try to find just the style tag if the comment is missing or different
-            # This is risky, so maybe we just report failure if the specific structure isn't found
+        if not re.search(pattern, html_content, flags=re.DOTALL):
+            print("Error: Could not find Critical CSS block in base.html.")
             return False
-            
+
+        new_html_content = re.sub(pattern, replacement, html_content, flags=re.DOTALL)
+
+        if new_html_content == html_content:
+            print("Critical CSS already up to date.")
+            return True
+
         with open(BASE_HTML, 'w', encoding='utf-8') as f:
             f.write(new_html_content)
-            
+
         print("Critical CSS injected successfully.")
         return True
         
