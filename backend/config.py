@@ -70,9 +70,6 @@ class ProductionConfig(Config):
     TALISMAN_FORCE_HTTPS = True
     CACHE_TYPE = "RedisCache"
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-
     @classmethod
     def validate(cls):
         if cls.SECRET_KEY == Config.SECRET_KEY and not os.getenv("SECRET_KEY"):
@@ -102,6 +99,6 @@ def get_config(env=None):
     if env is None:
         env = os.getenv("FLASK_ENV", "production")
     config_class = config.get(env, config["default"])
-    if env == "production" and hasattr(config_class, 'validate'):
+    if env == "production":
         config_class.validate()
     return config_class

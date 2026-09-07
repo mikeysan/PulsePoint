@@ -41,13 +41,3 @@ class FeedResult:
     articles: list[Article] = field(default_factory=list)
     error: Optional[str] = None
     success: bool = True
-
-    def to_dict(self):
-        """Convert feed result to dictionary for JSON serialization."""
-        return {
-            'source': self.source,
-            'url': self.url,
-            'articles': [article.to_dict() for article in self.articles],
-            'error': self.error,
-            'success': self.success,
-        }
